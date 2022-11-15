@@ -1,0 +1,170 @@
+openapi: 3.1.0
+x-stoplight:
+  id: ovr00ynuqdmlt
+info:
+  title: car-go
+  version: '1.0'
+  description: ''
+  summary: Car-go backend api
+servers:
+  - url: 'http://localhost:8081'
+    description: local dev
+paths:
+  /register:
+    parameters: []
+    post:
+      summary: Register User
+      operationId: registerUser
+      responses:
+        '201':
+          description: Successfully sent verifcation link to user
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+      description: Register new account with email & password
+      security: []
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCredentials'
+        description: Email & plaintext password
+      x-internal: false
+  /user:
+    get:
+      summary: Get User Info
+      tags: []
+      operationId: getUser
+      parameters: []
+      description: Get basic info about registered user
+      security:
+        - token: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+              examples:
+                Example 1:
+                  value:
+                    id: 165ecfd0-80a5-44f1-b3d2-c66313c96f6e
+                    email: test@email.com
+                    isVerified: false
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+  /register/verify:
+    get:
+      summary: Verify user's email
+      tags: []
+      responses:
+        '204':
+          description: Verified successfully
+        '401':
+          description: Failed to verify
+      operationId: verifyEmail
+      description: Verify user's email
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: secret
+          description: secret sent in email
+      security: []
+    parameters: []
+  /login:
+    post:
+      summary: User login
+      operationId: login
+      responses:
+        '200':
+          description: 'Successful authentication, responds with accessToken'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessToken'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+      description: Login by user's credentials
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCredentials'
+        description: ''
+      security: []
+components:
+  schemas:
+    UserCredentials:
+      title: UserCredentials
+      x-stoplight:
+        id: bdggt45fyisp6
+      type: object
+      examples:
+        - email: test@email.com
+          password: fooBar!42
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+    AccessToken:
+      title: AccessToken
+      x-stoplight:
+        id: 0b1l1wfp9wfjp
+      type: object
+      properties:
+        access_token:
+          type: string
+      required:
+        - access_token
+      description: Token which authenticates user
+    UserInfo:
+      type: object
+      x-examples:
+        Example 1:
+          id: 165ecfd0-80a5-44f1-b3d2-c66313c96f6e
+          email: test@email.com
+          isVerified: false
+      examples:
+        - id: 165ecfd0-80a5-44f1-b3d2-c66313c96f6e
+          email: test@email.com
+          isVerified: false
+      description: Protected info about user
+      title: UserInfo
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        isVerified:
+          type: boolean
+      required:
+        - id
+        - email
+        - isVerified
+  requestBodies: {}
+  securitySchemes:
+    token:
+      type: http
+      scheme: bearer
+  responses:
+    ErrorResponse:
+      description: Error response schema
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              description:
+                type: string
+            required:
+              - error
+security:
+  - token: []
