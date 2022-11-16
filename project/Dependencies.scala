@@ -9,8 +9,15 @@ object Dependencies {
   }
 
   lazy val coreDeps = Seq(
-    "dev.zio" %% "zio" % "2.0.3",
-    "dev.zio" %% "zio-interop-cats" % "13.0.0.1",
+    "dev.zio" %% "zio" % "2.0.0",
+    "dev.zio" %% "zio-logging" % "2.1.4",
+    "dev.zio" %% "zio-logging-slf4j" % "2.1.4",
+    ("dev.zio" %% "zio-interop-cats" % "3.3.0")
+      .exclude("co.fs2", "fs2-core_3")
+      .exclude("org.typelevel", "cats-effect_3")
+      .exclude("org.typelevel", "cats-kernel_3")
+      .exclude("org.typelevel", "cats-core_3")
+      .exclude("org.typelevel", "cats-effect-std_3"),
     "com.github.jwt-scala" %% "jwt-circe" % "9.1.2",
     "io.circe" %% "circe-core" % v.circe,
     "io.circe" %% "circe-refined" % v.circe,
@@ -24,10 +31,11 @@ object Dependencies {
     "org.tpolecat" %% "doobie-postgres" % v.doobie,
     "org.tpolecat" %% "doobie-hikari" % v.doobie,
     "org.typelevel" %% "cats-core" % "2.9.0",
+    "org.typelevel" %% "cats-effect" % "3.2.2",
     "org.http4s" %% "http4s-blaze-server" % "0.23.12",
     "org.http4s" %% "http4s-circe" % v.http4s,
     "org.http4s" %% "http4s-dsl" % v.http4s,
     "org.http4s" %% "http4s-client" % v.http4s,
-    "ch.qos.logback" % "logback-classic" % "1.2.3"
+    "ch.qos.logback" % "logback-classic" % "1.4.4"
   )
 }
