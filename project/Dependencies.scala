@@ -6,18 +6,14 @@ object Dependencies {
     val http4s = "0.23.16"
     val doobie = "1.0.0-RC2"
     val circe = "0.14.3"
+    val zioLogging = "2.1.4"
   }
 
   lazy val coreDeps = Seq(
-    "dev.zio" %% "zio" % "2.0.0",
-    "dev.zio" %% "zio-logging" % "2.1.4",
-    "dev.zio" %% "zio-logging-slf4j" % "2.1.4",
-    ("dev.zio" %% "zio-interop-cats" % "3.3.0")
-      .exclude("co.fs2", "fs2-core_3")
-      .exclude("org.typelevel", "cats-effect_3")
-      .exclude("org.typelevel", "cats-kernel_3")
-      .exclude("org.typelevel", "cats-core_3")
-      .exclude("org.typelevel", "cats-effect-std_3"),
+    "dev.zio" %% "zio" % "2.0.3",
+    "dev.zio" %% "zio-logging" % v.zioLogging,
+    "dev.zio" %% "zio-logging-slf4j" % v.zioLogging,
+    "dev.zio" %% "zio-interop-cats" % "3.3.0",
     "com.github.jwt-scala" %% "jwt-circe" % "9.1.2",
     "io.circe" %% "circe-core" % v.circe,
     "io.circe" %% "circe-refined" % v.circe,

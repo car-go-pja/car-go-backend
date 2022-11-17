@@ -10,13 +10,13 @@ ThisBuild / organizationName := "cargo"
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 lazy val app = (project in file("app"))
-  .enablePlugins(GuardrailPlugin)
+  .enablePlugins(GuardrailPlugin, DockerPlugin, JavaServerAppPackaging)
   .settings(
     name := "car-go",
     libraryDependencies ++= coreDeps,
     Compile / guardrailTasks := List(
       ScalaServer(
-        file("./app/src/main/resources/api.yaml"),
+        (Compile / resourceDirectory).value / "api.yaml",
         pkg = "com.cargo.api.generated",
         framework = "http4s",
         dto = "dto"
@@ -26,7 +26,21 @@ lazy val app = (project in file("app"))
     scalacOptions ++= Seq(
       "-encoding", "utf8",
       "-Ylog-classpath"
-    )
+    ),
+  )
+  .settings(
+  dockerSettings
+  )
+
+lazy val dockerSettings =
+  Seq(
+    dockerExposedPorts := Seq(8081),
+    dockerBaseImage := "openjdk:17-jdk-slim",
+    dockerRepository := Some("s22630"),
+    Docker / packageName := "car-go-backend",
+    Docker / daemonUserUid := None,
+    Docker / daemonUser := "daemon",
+    dockerUpdateLatest := true
   )
 
 lazy val root = (project in file("."))
