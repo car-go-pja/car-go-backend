@@ -1,0 +1,3 @@
+car-go-pja/car-go-frontend@main:
+  - source: app/src/main/resources/api.yaml
+    dest: api.yaml
