@@ -28,9 +28,8 @@ lazy val app = (project in file("app"))
       "-Ylog-classpath"
     ),
   )
-  .settings(
-  dockerSettings
-  )
+  .settings(dockerSettings)
+  .settings(flywaySettings)
 
 lazy val dockerSettings =
   Seq(
@@ -42,6 +41,12 @@ lazy val dockerSettings =
     Docker / daemonUser := "daemon",
     dockerUpdateLatest := true
   )
+
+lazy val flywaySettings = Seq(
+  flywayUrl := sys.env.getOrElse("DB_URL", "jdbc:postgresql://localhost:5432/postgres"),
+  flywayUser := sys.env.getOrElse("DB_USER", "postgres"),
+  flywayPassword := sys.env.getOrElse("DB_PASS", "test123")
+)
 
 lazy val root = (project in file("."))
   .settings(

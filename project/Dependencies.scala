@@ -7,12 +7,16 @@ object Dependencies {
     val doobie = "1.0.0-RC2"
     val circe = "0.14.3"
     val zioLogging = "2.1.4"
+    val zioConfig = "3.0.1"
   }
 
   lazy val coreDeps = Seq(
     "dev.zio" %% "zio" % "2.0.3",
     "dev.zio" %% "zio-logging" % v.zioLogging,
     "dev.zio" %% "zio-logging-slf4j" % v.zioLogging,
+    "dev.zio" %% "zio-config" % v.zioConfig,
+    "dev.zio" %% "zio-config-typesafe" % v.zioConfig,
+    "dev.zio" %% "zio-config-magnolia" % v.zioConfig,
     "dev.zio" %% "zio-interop-cats" % "3.3.0",
     "com.github.jwt-scala" %% "jwt-circe" % "9.1.2",
     "io.circe" %% "circe-core" % v.circe,
