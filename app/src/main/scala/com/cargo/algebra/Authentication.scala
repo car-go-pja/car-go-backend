@@ -1,3 +1,9 @@
 package com.cargo.algebra
 
-object Authentication
+import zio._
+
+trait Authentication {
+  def register(email: String, password: String): Task[Unit]
+}
+
+object Authentication {}
