@@ -7,7 +7,8 @@ object Dependencies {
     val doobie = "1.0.0-RC2"
     val circe = "0.14.3"
     val zioLogging = "2.1.4"
-    val zioConfig = "3.0.1"
+    val zioConfig = "3.0.2"
+    val enumeratum = "1.7.0"
   }
 
   lazy val coreDeps = Seq(
@@ -36,6 +37,8 @@ object Dependencies {
     "org.http4s" %% "http4s-circe" % v.http4s,
     "org.http4s" %% "http4s-dsl" % v.http4s,
     "org.http4s" %% "http4s-client" % v.http4s,
-    "ch.qos.logback" % "logback-classic" % "1.4.4"
+    "ch.qos.logback" % "logback-classic" % "1.4.4",
+    "com.beachape" %% "enumeratum" % v.enumeratum,
+    "com.beachape" %% "enumeratum-circe" % v.enumeratum
   )
 }
