@@ -23,12 +23,12 @@ services:
     depends_on:
       - db
 
-  car-go:
-    image: s22630/car-go-backend:latest
-    ports:
-      - 8083:8083
-    depends_on:
-      - db
+#  car-go:
+#    image: s22630/car-go-backend:latest
+#    ports:
+#      - 8083:8083
+#    depends_on:
+#      - db
 
 volumes:
   postgres_data:

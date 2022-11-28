@@ -10,7 +10,7 @@ ThisBuild / organizationName := "cargo"
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 lazy val app = (project in file("app"))
-  .enablePlugins(GuardrailPlugin, DockerPlugin, JavaServerAppPackaging)
+  .enablePlugins(GuardrailPlugin, DockerPlugin, JavaServerAppPackaging, FlywayPlugin)
   .settings(
     name := "car-go",
     libraryDependencies ++= coreDeps,
@@ -24,7 +24,8 @@ lazy val app = (project in file("app"))
     ),
     addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
     scalacOptions ++= Seq(
-      "-encoding", "utf8",
+      "-encoding",
+      "utf8",
       "-Ylog-classpath"
     ),
   )
