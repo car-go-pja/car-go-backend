@@ -11,6 +11,7 @@ final case class Token(
     id: UUID,
     encodedToken: String,
     claims: JwtClaim,
+    subject: String,
     tpe: TokenType,
     expiresAt: Instant,
     issuedAt: Instant

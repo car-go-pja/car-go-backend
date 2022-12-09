@@ -17,7 +17,7 @@ final class AuthController extends Handler[RIO[Authentication, *]] {
           .login(credentials.email, credentials.password)
           .map(token => respond.Ok(AccessToken(token.encodedToken)))
           .catchAll {
-            case ApplicationError.DatabaseError(msg)   => ZIO.fail(new Throwable(msg))
+            case ApplicationError.DatabaseError        => ZIO.fail(new Throwable("database error"))
             case ApplicationError.UserNotFound         => ZIO.fail(new Throwable(""))
             case ApplicationError.UnexpectedError(msg) => ZIO.fail(new Throwable(msg))
           }
@@ -34,12 +34,27 @@ final class AuthController extends Handler[RIO[Authentication, *]] {
       case None => ZIO.succeed(respond.Unauthorized(Json.obj()))
     }
 
-  override def verifyEmail(respond: Resource.VerifyEmailResponse.type)(
-      secret: Option[String]
-  ): RIO[Authentication, Resource.VerifyEmailResponse] = ???
+  override def verifyEmail(
+      respond: Resource.VerifyEmailResponse.type
+  )(code: String, authorization: String): RIO[Authentication, Resource.VerifyEmailResponse] =
+    Authentication.verifyEmail(code)(authorization).as(respond.NoContent).catchAll {
+      case ApplicationError.DatabaseError   => ZIO.fail(new Throwable("database error"))
+      case ApplicationError.UserNotFound    => ZIO.succeed(respond.Forbidden(Json.obj()))
+      case ApplicationError.InvalidCode     => ZIO.succeed(respond.Unauthorized)
+      case ApplicationError.InvalidToken(_) => ZIO.succeed(respond.Unauthorized)
+      case _                                => ZIO.fail(new Throwable("other failure"))
+    }
 
-  override def getUser(
-      respond: Resource.GetUserResponse.type
-  )(): RIO[Authentication, Resource.GetUserResponse] =
-    ???
+  override def getUser(respond: Resource.GetUserResponse.type)(
+      authorization: String
+  ): RIO[Authentication, Resource.GetUserResponse] =
+    Authentication
+      .getUserInfo(authorization)
+      .map(user => respond.Ok(UserInfo(user.id.toString, user.email, user.isVerified)))
+      .catchAll {
+        case ApplicationError.DatabaseError   => ZIO.fail(new Throwable("database error"))
+        case ApplicationError.InvalidCode     => ZIO.succeed(respond.Unauthorized(Json.obj()))
+        case ApplicationError.InvalidToken(_) => ZIO.succeed(respond.Unauthorized(Json.obj()))
+        case _                                => ZIO.fail(new Throwable("other failure"))
+      }
 }

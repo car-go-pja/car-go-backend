@@ -3,9 +3,11 @@ package com.cargo
 import com.cargo.algebra.{Authentication, Tokens}
 import com.cargo.api.AuthController
 import com.cargo.api.generated.Resource
-import com.cargo.config.ApplicationConfig
+import com.cargo.config.{ApplicationConfig, SendGridConfig}
 import com.cargo.infrastructure.DatabaseTransactor
 import com.cargo.repository.UsersRepository
+import com.cargo.service.EmailNotification
+import com.sendgrid.SendGrid
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import zio.ZIOAppDefault
@@ -25,9 +27,12 @@ object Main extends ZIOAppDefault {
       ApplicationConfig.live,
       ApplicationConfig.live.narrow(_.token),
       ApplicationConfig.live.narrow(_.database),
+      ApplicationConfig.live.narrow(_.sendgridConfig),
       Authentication.live,
       UsersRepository.live,
-      Tokens.live
+      Tokens.live,
+      ZLayer(ZIO.service[SendGridConfig].map(cfg => new SendGrid(cfg.sendGridApiKey))),
+      EmailNotification.live
     )
 
   lazy val app =
