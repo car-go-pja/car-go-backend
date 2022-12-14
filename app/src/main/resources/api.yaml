@@ -5,7 +5,7 @@ info:
   description: ''
   summary: Car-go backend api
 servers:
-  - url: 'http://localhost:8081'
+  - url: 'http://localhost:8083'
     description: local dev
 paths:
   /register:
@@ -14,10 +14,24 @@ paths:
       summary: Register User
       operationId: registerUser
       responses:
-        '201':
-          description: Successfully sent verifcation link to user
+        '200':
+          description: 'Successfully sent verification link to user, responds with token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationToken'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
-          $ref: '#/components/responses/ErrorResponse'
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
       description: Register new account with email & password
       security: []
       parameters: []
@@ -33,10 +47,14 @@ paths:
       summary: Get User Info
       tags: []
       operationId: getUser
-      parameters: []
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer eY..
+          required: true
       description: Get basic info about registered user
-      security:
-        - token: []
       responses:
         '200':
           description: ''
@@ -51,7 +69,11 @@ paths:
                     email: test@email.com
                     isVerified: false
         '401':
-          $ref: '#/components/responses/ErrorResponse'
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /register/verify:
     get:
       summary: Verify user's email
@@ -61,15 +83,31 @@ paths:
           description: Verified successfully
         '401':
           description: Failed to verify
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
       operationId: verifyEmail
       description: Verify user's email
       parameters:
         - schema:
             type: string
           in: query
-          name: secret
-          description: secret sent in email
-      security: []
+          name: code
+          description: verification code from email
+          required: true
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer eY..
+          required: true
     parameters: []
   /login:
     post:
@@ -82,8 +120,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccessToken'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
-          $ref: '#/components/responses/ErrorResponse'
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
       description: Login by user's credentials
       requestBody:
         content:
@@ -136,23 +184,25 @@ components:
         - id
         - email
         - isVerified
+    VerificationToken:
+      title: VerificationToken
+      type: object
+      properties:
+        verification_token:
+          type: string
+      description: Usedd to verify user
+    ErrorResponse:
+      title: ErrorResponse
+      type: object
+      properties:
+        error:
+          type: string
+        description:
+          type: string
+      required:
+        - error
   securitySchemes:
     token:
       type: http
       scheme: bearer
-  responses:
-    ErrorResponse:
-      description: Error response schema
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-              description:
-                type: string
-            required:
-              - error
-security:
-  - token: []
+  responses: {}
