@@ -52,7 +52,6 @@ object Tokens {
         token = Token(id, encodedToken, jwtClaims, subject, VerificationToken, expiresAt, at)
       } yield token
 
-
     override def verify(rawToken: String): IO[InvalidToken, Token] =
       for {
         jwtClaims <-
@@ -73,8 +72,13 @@ object Tokens {
             .orElseFail(InvalidToken("missing id"))
         tokenType <-
           ZIO
-            .fromOption(content.asObject.flatMap(_.keys.collectFirst(TokenType.fromNamespace)))
+            .fromOption(
+              content.asObject
+                .flatMap(_.values.headOption.flatMap(_.asString))
+                .map(TokenType.fromNamespace)
+            )
             .orElseFail(InvalidToken("missing tpe"))
+            .tapError(_ => ZIO.logInfo(s"\ndupa dupa ${content.asObject}\n"))
         expiresAt <-
           ZIO
             .fromOption(jwtClaims.expiration.map(Instant.ofEpochSecond))

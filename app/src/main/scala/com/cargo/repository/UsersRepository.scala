@@ -5,39 +5,68 @@ import doobie._
 import doobie.implicits._
 import doobie.postgres.implicits._
 import zio.interop.catz._
+import com.cargo.error.ApplicationError._
 import zio._
-
 import java.time.Instant
 import java.util.UUID
 
+import cats.effect.MonadCancelThrow
+
 trait UsersRepository {
-  def create(id: UUID, email: String, password: String): Task[Unit]
-  def find(email: String): Task[Option[User]]
-  def saveVerificationCode(id: UUID, code: String, userId: UUID, createdAt: Instant): Task[Unit]
-  def markAsVerified(userId: UUID): Task[Unit]
-  def isVerified(userId: UUID): Task[Boolean]
-  def findVerificationRow(userId: UUID): Task[Option[VerificationRow]]
+  def create(id: UUID, email: String, password: String): IO[DatabaseError.type, Unit]
+  def find(email: String): IO[DatabaseError.type, Option[User]]
+  def saveVerificationCode(
+      id: UUID,
+      code: String,
+      userId: UUID,
+      createdAt: Instant
+  ): IO[DatabaseError.type, Unit]
+  def markAsVerified(userId: UUID): IO[DatabaseError.type, Unit]
+  def isVerified(userId: UUID): IO[DatabaseError.type, Boolean]
+  def findVerificationRow(userId: UUID): IO[DatabaseError.type, Option[VerificationRow]]
 }
 
 object UsersRepository {
   final case class UsersLive(xa: Transactor[Task]) extends UsersRepository {
-    override def create(id: UUID, email: String, password: String): Task[Unit] =
-      SQL.create(id, email, password).run.transact(xa).unit
+    override def create(id: UUID, email: String, password: String): IO[DatabaseError.type, Unit] =
+      SQL
+        .create(id, email, password)
+        .run
+        .transact(xa)
+        .unit
+        .mapError(_ => DatabaseError)
 
-    override def find(email: String): Task[Option[User]] =
-      SQL.find(email).option.transact(xa)
+    override def find(email: String): IO[DatabaseError.type, Option[User]] =
+      SQL.find(email).option.transact(xa).orElseFail(DatabaseError)
 
-    override def saveVerificationCode(id: UUID, code: String, userId: UUID, createdAt: Instant): Task[Unit] =
-      SQL.saveVerificationCode(id, code, userId, createdAt).run.transact(xa).unit
+    override def saveVerificationCode(
+        id: UUID,
+        code: String,
+        userId: UUID,
+        createdAt: Instant
+    ): IO[DatabaseError.type, Unit] =
+      SQL
+        .saveVerificationCode(id, code, userId, createdAt)
+        .run
+        .transact(xa)
+        .unit
+        .orElseFail(DatabaseError)
 
-    override def markAsVerified(userId: UUID): Task[Unit] =
-      SQL.markAsVerified(userId).run.transact(xa).unit
+    override def markAsVerified(userId: UUID): IO[DatabaseError.type, Unit] =
+      SQL.markAsVerified(userId).run.transact(xa).unit.orElseFail(DatabaseError)
 
-    override def isVerified(userId: UUID): Task[Boolean] =
-      SQL.isVerified(userId).option.transact(xa).map(_.getOrElse(false)) // fixme return error in io if user doesn't exist
+    override def isVerified(userId: UUID): IO[DatabaseError.type, Boolean] =
+      SQL
+        .isVerified(userId)
+        .option
+        .transact(xa)
+        .map(_.getOrElse(false))
+        .orElseFail(DatabaseError) // fixme return error in io if user doesn't exist
 
-    override def findVerificationRow(userId: UUID): Task[Option[VerificationRow]] =
-      SQL.findVerificationRow(userId).option.transact(xa)
+    override def findVerificationRow(
+        userId: UUID
+    ): IO[DatabaseError.type, Option[VerificationRow]] =
+      SQL.findVerificationRow(userId).option.transact(xa).orElseFail(DatabaseError)
   }
 
   val live = ZLayer.fromFunction(UsersLive.apply _)

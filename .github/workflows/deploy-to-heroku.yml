@@ -1,0 +1,17 @@
+#name: Deploy to Heroku
+#on: [push]
+#
+#jobs:
+#  deploy:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Build and push Docker image
+#        run: |
+#          docker build -t my-app:latest .
+#          docker push my-app:latest
+#      - name: Deploy to Heroku
+#        uses: heroku/heroku-container-deploy@v1
+#        with:
+#          app: my-app-name
+#          docker-image: my-app:latest

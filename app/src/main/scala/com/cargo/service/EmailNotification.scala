@@ -31,7 +31,7 @@ object EmailNotification {
 
       val request = new Request
       for {
-        _ <- ZIO.logInfo(s"Sending mail to ${to.getEmail}")
+        _ <- ZIO.logInfo(s"Sending email to ${to.getEmail}")
         sendResponse <- ZIO.succeed {
           request.setMethod(Method.POST)
           request.setEndpoint("mail/send")
@@ -40,9 +40,9 @@ object EmailNotification {
         }
         _ <-
           ZIO
-            .fail(IntegrationError("failed to send an email"))
+            .fail(IntegrationError(s"failed to send an email ${sendResponse.getBody}"))
             .unless(sendResponse.getStatusCode / 100 == 2)
-       _ <- ZIO.logInfo("Successfully sent email")
+        _ <- ZIO.logInfo("Successfully sent email")
       } yield ()
     }
 

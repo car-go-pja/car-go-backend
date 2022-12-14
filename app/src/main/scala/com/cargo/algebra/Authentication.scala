@@ -22,7 +22,7 @@ import scala.util.Random
 import java.util.UUID
 
 trait Authentication {
-  def registerUser(email: String, password: String): Task[Token]
+  def registerUser(email: String, password: String): IO[ApplicationError, Token]
   def verifyEmail(code: String)(rawToken: String): IO[ApplicationError, Unit]
   def login(email: String, password: String): IO[ApplicationError, Token]
   def getUserInfo(rawToken: String): IO[ApplicationError, UserInfo]
@@ -30,7 +30,7 @@ trait Authentication {
 
 object Authentication {
 
-  def registerUser(email: String, password: String): ZIO[Authentication, Throwable, Token] =
+  def registerUser(email: String, password: String): ZIO[Authentication, ApplicationError, Token] =
     ZIO.serviceWithZIO[Authentication](_.registerUser(email, password))
 
   def login(
@@ -52,7 +52,7 @@ object Authentication {
       users: UsersRepository,
       emailNotification: EmailNotification
   ) extends Authentication {
-    override def registerUser(email: String, password: String): Task[Token] =
+    override def registerUser(email: String, password: String): IO[ApplicationError, Token] =
       for {
         _ <- ZIO.logInfo("Register user request")
         userId <- ZIO.succeed(UUID.randomUUID())
@@ -63,11 +63,9 @@ object Authentication {
         verificationCode = Random.between(100000, 1000000).toString
         _ <- users.saveVerificationCode(verificationId, verificationCode, userId, createdAt)
         _ <- ZIO.logInfo(s"Successfully created user with id: $userId")
-        _ <-
-          emailNotification
-            .sendVerificationEmail(email, verificationCode)
-            .mapError(err => new Throwable(err.msg)) //fixme
-        token <- tokens.issueVerificationToken(email, createdAt)
+        _ <- emailNotification.sendVerificationEmail(email, verificationCode)
+        token <-
+          tokens.issueVerificationToken(email, createdAt).mapError(x => UnexpectedError("")) //fixme
       } yield token
 
     override def verifyEmail(code: String)(
