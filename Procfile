@@ -1,0 +1,1 @@
+web: sbt "app / run"
