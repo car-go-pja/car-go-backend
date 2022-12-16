@@ -8,9 +8,6 @@ on:
     branches:
       - main
 
-env:
-  HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,9 +20,12 @@ jobs:
       - name: Build with sbt-docker
         run: sbt docker:publishLocal
       - name: Login to Heroku
-        run: |
-          heroku cache:clear
-          heroku login -i
+        uses: akhileshns/heroku-deploy@v3.12.12
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: car-go-backend
+          heroku_email: s22630@pjwstk.edu.pl
+          usedocker: true
       - name: Push to Heroku Container Registry
         run: heroku container:push web -a car-go-backend
       - name: Release
