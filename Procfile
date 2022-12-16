@@ -1,1 +1,1 @@
-web: sbt "app / run" -encoding UTF-8
+web: sbt "app / run"

@@ -57,7 +57,6 @@ lazy val app = (project in file("app"))
 
 lazy val dockerSettings =
   Seq(
-    dockerExposedPorts := Seq(8081),
     dockerBaseImage := "openjdk:17-jdk-slim",
     dockerRepository := Some("s22630"),
     Docker / packageName := "car-go-backend",

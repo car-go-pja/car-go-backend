@@ -32,7 +32,7 @@ object Tokens {
           issuedAt = at.getEpochSecond.some,
           jwtId = id.toString.some
         )
-        encodedToken = JwtCirce.encode(jwtClaims, config.privateKey, JwtAlgorithm.RS256)
+        encodedToken = JwtCirce.encode(jwtClaims, config.secret, JwtAlgorithm.HS256)
         token = Token(id, encodedToken, jwtClaims, subject, AccessToken, expiresAt, at)
       } yield token
 
@@ -48,7 +48,7 @@ object Tokens {
           issuedAt = at.getEpochSecond.some,
           jwtId = id.toString.some
         )
-        encodedToken = JwtCirce.encode(jwtClaims, config.privateKey, JwtAlgorithm.RS256)
+        encodedToken = JwtCirce.encode(jwtClaims, config.secret, JwtAlgorithm.HS256)
         token = Token(id, encodedToken, jwtClaims, subject, VerificationToken, expiresAt, at)
       } yield token
 
@@ -56,7 +56,7 @@ object Tokens {
       for {
         jwtClaims <-
           ZIO
-            .fromTry(JwtCirce.decode(rawToken, config.publicKey, Seq(JwtAlgorithm.RS256)))
+            .fromTry(JwtCirce.decode(rawToken, config.secret, Seq(JwtAlgorithm.HS256)))
             .mapError(err => InvalidToken(err.getMessage))
         subject <-
           ZIO
@@ -78,7 +78,6 @@ object Tokens {
                 .map(TokenType.fromNamespace)
             )
             .orElseFail(InvalidToken("missing tpe"))
-            .tapError(_ => ZIO.logInfo(s"\ndupa dupa ${content.asObject}\n"))
         expiresAt <-
           ZIO
             .fromOption(jwtClaims.expiration.map(Instant.ofEpochSecond))

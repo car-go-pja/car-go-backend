@@ -28,7 +28,7 @@ final class AuthController extends Handler[RIO[Authentication, *]] {
         Authentication
           .registerUser(credentials.email, credentials.password)
           .map(token => respond.Ok(VerificationToken(token.encodedToken.some)))
-          .catchAll(_ => ZIO.fail(new Throwable("xd"))) //fixme
+          .catchAll(err => catchApplicationError(respond.Unauthorized)(err)) //fixme
       case None => ZIO.succeed(respond.Unauthorized(ErrorResponse("")))
     }
 
