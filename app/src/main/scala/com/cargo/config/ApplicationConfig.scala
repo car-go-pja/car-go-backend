@@ -13,7 +13,7 @@ final case class ApplicationConfig(
 )
 
 object ApplicationConfig {
-  val configuration = nested("server")(descriptor[ServerConfig])
+  val configuration = nested("server")(ServerConfig.configuration)
     .zip(nested("database")(descriptor[DatabaseConfig]))
     .zip(nested("token")(TokenConfig.configuration))
     .zip(nested("sendgrid")(descriptor[SendGridConfig]))

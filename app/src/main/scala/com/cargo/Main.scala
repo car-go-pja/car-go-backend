@@ -15,7 +15,6 @@ import zio._
 import zio.interop.catz._
 import org.http4s.server.middleware.CORS
 import org.http4s.implicits._
-import org.typelevel.ci.CIStringSyntax
 import zio.logging.LogFormat
 import zio.config.syntax._
 import zio.logging.backend.SLF4J
@@ -43,9 +42,9 @@ object Main extends ZIOAppDefault {
         .flatMap { implicit r: Runtime[Any] =>
           val cors = CORS.policy
             .withAllowCredentials(true)
-            .withAllowOriginHostCi(cfg.server.allowedOrigins.map(_.ci).contains)
+            .withAllowOriginHostCi(cfg.server.allowedOrigins.contains)
 
-          println(cfg.server.allowedOrigins)
+          println(s"CORS config: " + cfg.server.allowedOrigins)
 
           val api =
             Router(
