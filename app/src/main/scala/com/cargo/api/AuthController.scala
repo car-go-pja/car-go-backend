@@ -6,7 +6,6 @@ import zio._
 import com.cargo.api.generated.{Handler, Resource}
 import com.cargo.api.generated.definitions.dto._
 import com.cargo.error.ApplicationError
-import io.circe.Json
 
 final class AuthController extends Handler[RIO[Authentication, *]] {
   override def login(
@@ -36,7 +35,7 @@ final class AuthController extends Handler[RIO[Authentication, *]] {
       respond: Resource.VerifyEmailResponse.type
   )(code: String, authorization: String): RIO[Authentication, Resource.VerifyEmailResponse] =
     Authentication
-      .verifyEmail(code)(authorization.drop(7)) //fixme parse bearer token (middleware?)
+      .verifyEmail(code)(parseToken(authorization)) //fixme parse bearer token (middleware?)
       .as(respond.NoContent)
       .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
 
@@ -44,7 +43,7 @@ final class AuthController extends Handler[RIO[Authentication, *]] {
       authorization: String
   ): RIO[Authentication, Resource.GetUserResponse] =
     Authentication
-      .getUserInfo(authorization.drop(7))
+      .getUserInfo(parseToken(authorization))
       .map(user => respond.Ok(UserInfo(user.id.toString, user.email, user.isVerified)))
       .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
   private def catchApplicationError[Resp](
@@ -64,6 +63,6 @@ final class AuthController extends Handler[RIO[Authentication, *]] {
       case ApplicationError.InvalidToken(msg) =>
         ZIO.succeed(unauthorized(ErrorResponse("invalid_token", msg.some)))
       case ApplicationError.UserNotFound =>
-        ZIO.fail(new RuntimeException("user not found"))
+        ZIO.succeed(unauthorized(ErrorResponse("user_not_found", None)))
     }
 }
