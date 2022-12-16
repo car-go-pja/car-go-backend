@@ -23,7 +23,9 @@ jobs:
       - name: Build with sbt-docker
         run: sbt docker:publishLocal
       - name: Login to Heroku
-        run: heroku login -i
+        run: |
+          heroku cache:clear
+          heroku login -i
       - name: Push to Heroku Container Registry
         run: heroku container:push web -a car-go-backend
       - name: Release
