@@ -29,7 +29,7 @@ final class AuthController extends Handler[RIO[Authentication, *]] {
           .registerUser(credentials.email, credentials.password)
           .map(token => respond.Ok(VerificationToken(token.encodedToken.some)))
           .catchAll(err => catchApplicationError(respond.Unauthorized)(err)) //fixme
-      case None => ZIO.succeed(respond.Unauthorized(ErrorResponse("")))
+      case None => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_body")))
     }
 
   override def verifyEmail(

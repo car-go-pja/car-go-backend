@@ -5,8 +5,8 @@ info:
   description: ''
   summary: Car-go backend api
 servers:
-  - url: 'http://localhost:8083'
-    description: local dev
+  - url: 'https://car-go-backend.herokuapp.com'
+    description: prod env
 paths:
   /register:
     parameters: []

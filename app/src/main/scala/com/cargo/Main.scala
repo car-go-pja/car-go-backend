@@ -13,6 +13,7 @@ import org.http4s.server.Router
 import zio.ZIOAppDefault
 import zio._
 import zio.interop.catz._
+import org.http4s.server.middleware._
 import org.http4s.implicits._
 import zio.logging.LogFormat
 import zio.config.syntax._
@@ -39,12 +40,17 @@ object Main extends ZIOAppDefault {
     ZIO.service[ApplicationConfig].flatMap { cfg =>
       ZIO.runtime
         .flatMap { implicit r: Runtime[Any] =>
-          val api = Router(
-            "/" -> new Resource[RIO[Authentication, *]]().routes(new AuthController)
-          ).orNotFound
+          val cors = CORS.policy
+            .withAllowCredentials(true)
+            .withAllowOriginHostCi(cfg.server.allowedOrigins.map(_.ci).contains)
+
+          val api =
+            Router(
+              "/" -> new Resource[RIO[Authentication, *]]().routes(new AuthController)
+            ).orNotFound
 
           BlazeServerBuilder[RIO[Authentication, *]]
-            .withHttpApp(api)
+            .withHttpApp(cors(api))
             .bindHttp(cfg.server.port, cfg.server.hostname)
             .serve
             .compile

@@ -1,3 +1,3 @@
 package com.cargo.config
 
-final case class ServerConfig(hostname: String, port: Int)
+final case class ServerConfig(hostname: String, port: Int, allowedOrigins: Set[String])
