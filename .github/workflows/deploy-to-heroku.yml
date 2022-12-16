@@ -19,6 +19,8 @@ jobs:
           java-version: 17
       - name: Build with sbt-docker
         run: sbt docker:publishLocal
+      - name: Change directory
+        run: cd app/target/docker/stage
       - name: Login to Heroku
         uses: akhileshns/heroku-deploy@v3.12.12
         with:
