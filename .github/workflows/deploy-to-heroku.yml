@@ -20,10 +20,10 @@ jobs:
       - name: Build with sbt-docker
         run: sbt docker:publishLocal
       - name: Login to Heroku
-        working-directory: ./app/target/docker/stage
         uses: akhileshns/heroku-deploy@v3.12.12
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: car-go-backend
           heroku_email: s22630@pjwstk.edu.pl
           usedocker: true
+          working-directory: ./app/target/docker/stage
