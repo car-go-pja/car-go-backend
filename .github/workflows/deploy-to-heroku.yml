@@ -26,4 +26,4 @@ jobs:
           heroku_app_name: car-go-backend
           heroku_email: s22630@pjwstk.edu.pl
           usedocker: true
-          working-directory: ./app/target/docker/stage
+          appdir: ./app/target/docker/stage
