@@ -17,9 +17,9 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 17
-      - name: Build with sbt-docker
+      - name: Build docker image
         run: sbt docker:publishLocal
-      - name: Login to Heroku
+      - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.12.12
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
