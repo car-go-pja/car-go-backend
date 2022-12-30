@@ -18,7 +18,7 @@ jobs:
         with:
           java-version: 17
       - name: Run tests
-        run: sbt test
+        run: sbt it:test
       - name: Run Flyway Migrations
           env:
             DB_URL: ${{ secrets.DB_URL }}

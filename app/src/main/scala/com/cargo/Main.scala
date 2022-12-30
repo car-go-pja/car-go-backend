@@ -1,11 +1,11 @@
 package com.cargo
 
-import com.cargo.algebra.{Authentication, Tokens}
-import com.cargo.api.AuthController
+import com.cargo.algebra.{Authentication, CarOffers, Tokens}
+import com.cargo.api.MainController
 import com.cargo.api.generated.Resource
 import com.cargo.config.{ApplicationConfig, SendGridConfig}
 import com.cargo.infrastructure.DatabaseTransactor
-import com.cargo.repository.UsersRepository
+import com.cargo.repository.{CarOffersRepository, UsersRepository}
 import com.cargo.service.EmailNotification
 import com.sendgrid.SendGrid
 import org.http4s.blaze.server.BlazeServerBuilder
@@ -33,7 +33,9 @@ object Main extends ZIOAppDefault {
       UsersRepository.live,
       Tokens.live,
       ZLayer(ZIO.service[SendGridConfig].map(cfg => new SendGrid(cfg.sendGridApiKey))),
-      EmailNotification.live
+      EmailNotification.live,
+      CarOffers.live,
+      CarOffersRepository.live
     )
 
   lazy val app =
@@ -48,10 +50,10 @@ object Main extends ZIOAppDefault {
 
           val api =
             Router(
-              "/" -> new Resource[RIO[Authentication, *]]().routes(new AuthController)
+              "/" -> new Resource[RIO[Authentication with CarOffers, *]]().routes(new MainController)
             ).orNotFound
 
-          BlazeServerBuilder[RIO[Authentication, *]]
+          BlazeServerBuilder[RIO[Authentication with CarOffers, *]]
             .withHttpApp(cors(api))
             .bindHttp(cfg.server.port, cfg.server.hostname)
             .serve

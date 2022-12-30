@@ -1,16 +1,9 @@
 package com.cargo.algebra
 
 import com.cargo.error.ApplicationError
-import com.cargo.error.ApplicationError.{
-  DatabaseError,
-  InvalidCode,
-  InvalidPassword,
-  InvalidToken,
-  UnexpectedError,
-  UserNotFound
-}
+import com.cargo.error.ApplicationError._
 import com.cargo.model.TokenType.{AccessToken, VerificationToken}
-import com.cargo.model.{Token, UserInfo}
+import com.cargo.model.{Token, User, UserInfo}
 import com.password4j.Password
 import com.cargo.repository.UsersRepository
 import com.cargo.service.EmailNotification
@@ -55,7 +48,7 @@ object Authentication {
     override def registerUser(email: String, password: String): IO[ApplicationError, Token] =
       for {
         _ <- ZIO.logInfo("Register user request")
-        userId <- ZIO.succeed(UUID.randomUUID())
+        userId <- ZIO.succeed(User.Id(UUID.randomUUID()))
         _ <- users.create(userId, email, Password.hash(password).withBcrypt.getResult)
         _ <- ZIO.logInfo("User successfully saved to db")
         verificationId <- ZIO.succeed(UUID.randomUUID())
@@ -64,8 +57,7 @@ object Authentication {
         _ <- users.saveVerificationCode(verificationId, verificationCode, userId, createdAt)
         _ <- ZIO.logInfo(s"Successfully created user with id: $userId")
         _ <- emailNotification.sendVerificationEmail(email, verificationCode)
-        token <-
-          tokens.issueVerificationToken(email, createdAt).mapError(x => UnexpectedError("")) //fixme
+        token <- tokens.issueVerificationToken(email, createdAt).mapError(err => UnexpectedError(err.getMessage))
       } yield token
 
     override def verifyEmail(code: String)(
@@ -102,10 +94,10 @@ object Authentication {
         _ <- ZIO.logInfo("Get user info request")
         token <- tokens.verify(rawToken)
         _ <- ZIO.unless(token.tpe == AccessToken)(ZIO.fail(InvalidToken("wrong token tpe")))
-        userO <- users.find(token.subject).orElseFail(DatabaseError)
+        userO <- users.find(token.subject)
         user <- ZIO.fromOption(userO).orElseFail(UserNotFound)
         _ <- ZIO.logInfo("Successfully sent user info")
-      } yield UserInfo(user.id, user.email, user.isVerified)
+      } yield UserInfo(user.id.value, user.email, user.isVerified)
   }
 
   val live = ZLayer.fromFunction(AuthLive.apply _)
