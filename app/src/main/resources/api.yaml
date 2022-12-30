@@ -140,6 +140,106 @@ paths:
               $ref: '#/components/schemas/UserCredentials'
         description: ''
       security: []
+  /user/profile:
+    post:
+      summary: Update user profile
+      operationId: post-user-profile
+      responses:
+        '201':
+          description: Successfully updated profile
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: ''
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfile'
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer token
+          required: true
+  /offers:
+    post:
+      summary: Add car offer
+      operationId: post-offers-add
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Bad Request
+          headers: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer token
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarOfferReq'
+      description: Add car offer
+    parameters: []
+    get:
+      summary: List available cars
+      operationId: get-offers
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CarOfferRes'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: from
+          description: from datetime utc
+        - schema:
+            type: string
+          in: query
+          name: to
+          description: to datetime utc
+        - schema:
+            type: string
+          in: query
+          name: city
+          description: city name
+        - schema:
+            type: string
+          in: query
+          name: features
+          description: comma separated 'list' of features
+      description: List available cars with their info - this is a public endpoint
 components:
   schemas:
     UserCredentials:
@@ -178,12 +278,12 @@ components:
           type: string
         email:
           type: string
-        isVerified:
+        is_verified:
           type: boolean
       required:
         - id
         - email
-        - isVerified
+        - is_verified
     VerificationToken:
       title: VerificationToken
       type: object
@@ -201,6 +301,163 @@ components:
           type: string
       required:
         - error
+    UserProfile:
+      title: UserProfile
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone:
+          type: string
+        dob:
+          type: string
+        driving_licence:
+          type: string
+      x-examples:
+        Example 1:
+          first_name: Jan
+          last_name: Nowak
+          phone: '606606606'
+          dob: 31-01-2000
+          driving_licence: CFP012345
+      description: ''
+    Feature:
+      type: string
+      enum:
+        - ac
+        - usb
+        - heated_seats
+        - four_by_four
+        - panorama_roof
+        - bluetooth
+        - aux
+        - gps
+      description: Describes arbitrary features
+    CarOfferRes:
+      title: CarOfferRes
+      type: object
+      x-examples: {}
+      properties:
+        id:
+          type: string
+        owner_id:
+          type: string
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: string
+        price_per_day:
+          type: number
+        horsepower:
+          type: string
+        fuel_type:
+          type: string
+        features:
+          type:
+            - array
+          items:
+            $ref: '#/components/schemas/Feature'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageUrl'
+        seats_amount:
+          type: string
+        point:
+          $ref: '#/components/schemas/Point'
+        city:
+          type: string
+      required:
+        - make
+        - model
+        - year
+        - price_per_day
+        - horsepower
+        - fuel_type
+        - features
+        - images
+        - seats_amount
+        - city
+    ImageUrl:
+      title: ImageUrl
+      type: object
+      properties:
+        url:
+          type: string
+    Point:
+      title: Point
+      type: object
+      description: Describes point coordinates in 2D
+      properties:
+        lat:
+          type: string
+        lon:
+          type: string
+      required:
+        - lat
+        - lon
+    CarOfferReq:
+      type: object
+      x-examples:
+        Example 1:
+          make: string
+          model: string
+          year: string
+          price_per_day: 0
+          horsepower: string
+          fuel_type: string
+          features:
+            - ac
+          seats_amount: string
+          point:
+            lat: string
+            lon: string
+      properties:
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: string
+        price_per_day:
+          type: integer
+        horsepower:
+          type: string
+        fuel_type:
+          type: string
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+        seats_amount:
+          type: string
+        city:
+          type: string
+        point:
+          type: object
+          properties:
+            lat:
+              type: string
+            lon:
+              type: string
+          required:
+            - lat
+            - lon
+      required:
+        - make
+        - model
+        - year
+        - price_per_day
+        - horsepower
+        - fuel_type
+        - features
+        - seats_amount
+        - city
+      title: CarOfferReq
   securitySchemes:
     token:
       type: http

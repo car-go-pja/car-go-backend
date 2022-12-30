@@ -49,9 +49,14 @@ lazy val app = (project in file("app"))
     scalacOptions ++= Seq(
       "-encoding",
       "utf8",
-      "-Ylog-classpath"
+      "-Ylog-classpath",
+      "-Ymacro-annotations"
     ),
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
   )
+  .configs(IntegrationTest)
+  .settings(Defaults.itSettings)
+  .settings(openApiGeneratorSettings("app/src/main/resources/api.yaml", "com.cargo"))
   .settings(dockerSettings)
   .settings(flywaySettings)
 
@@ -75,4 +80,6 @@ lazy val root = (project in file("."))
   .settings(
     addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full)
   )
+  .configs(IntegrationTest)
+  .settings(Defaults.itSettings)
   .aggregate(app)
