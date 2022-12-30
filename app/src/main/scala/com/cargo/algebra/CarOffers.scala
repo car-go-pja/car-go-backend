@@ -67,15 +67,17 @@ object CarOffers {
       geolocation: Option[Point]
     )(rawToken: String): IO[ApplicationError, Unit] =
       for {
+        _ <- ZIO.logInfo("Add car offer request")
         token <- tokens.verify(rawToken)
         userO <- usersRepository.find(token.subject)
         user <- ZIO.fromOption(userO).orElseFail(UserNotFound)
         id <- ZIO.succeed(CarOffer.Id(UUID.randomUUID()))
         _ <- carOffersRepo.create(id, user.id, make, model, year, pricePerDay, horsepower, fuelType, features, city, seatsAmount, geolocation, Instant.now())
+        _ <- ZIO.logInfo("Successfully added offer")
       } yield ()
 
     override def list(from: Option[Instant], to: Option[Instant], city: Option[String], features: List[String]): IO[ApplicationError, List[CarOffer]] =
-      carOffersRepo.list(from, to, city, features)
+      carOffersRepo.list(from, to, city, features).tap(offers => ZIO.logInfo(s"Successfully listed offers with size: ${offers.size}"))
   }
 
   val live = ZLayer.fromFunction(CarOffersLive.apply _)
