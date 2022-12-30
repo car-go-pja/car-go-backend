@@ -8,6 +8,11 @@ on:
     branches:
       - main
 
+env:
+  DB_URL: ${{ secrets.DB_URL }}
+  DB_PASS: ${{ secrets.DB_PASS }}
+  DB_USER: ${{ secrets.DB_USER }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,10 +25,6 @@ jobs:
       - name: Run tests
         run: sbt it:test
       - name: Run Flyway Migrations
-          env:
-            DB_URL: ${{ secrets.DB_URL }}
-            DB_PASS: ${{ secrets.DB_PASS }}
-            DB_USER: ${{ secrets.DB_USER }}
         run: sbt flywayMigrate
       - name: Build docker image
         run: sbt docker:publishLocal
