@@ -432,7 +432,7 @@ components:
         features:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/Feature'
         seats_amount:
           type: string
         city:
