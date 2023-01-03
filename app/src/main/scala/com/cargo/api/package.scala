@@ -1,6 +1,6 @@
 package com.cargo
 
-import com.cargo.api.generated.definitions.dto.{CarOfferRes, Feature}
+import com.cargo.api.generated.definitions.dto.{CarOfferRes, Feature, Point}
 import io.scalaland.chimney.dsl._
 import cats.syntax.option._
 import com.cargo.model.CarOffer
@@ -13,5 +13,6 @@ package object api {
       .withFieldComputed(_.id, _.id.value.toString.some)
       .withFieldComputed(_.ownerId, _.ownerId.value.toString.some)
       .withFieldComputed(_.features, _.features.flatMap(Feature.from).toVector)
+      .withFieldComputed(_.point, o => o.geolocation.map(p => Point(p.lat.toString, p.lon.toString)))
       .transform
 }
