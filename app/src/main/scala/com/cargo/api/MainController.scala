@@ -69,7 +69,7 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
             features = req.features.map(_.value).toList,
             city = req.city,
             seatsAmount = req.seatsAmount,
-            geolocation = req.point.map(p => Point(p.lat.toInt, p.lon.toInt))
+            geolocation = req.point.map(p => Point(p.lat.toDouble, p.lon.toDouble))
           )(parseToken(authorization))
           .as(respond.Created)
           .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
