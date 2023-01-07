@@ -65,7 +65,7 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
             year = req.year,
             pricePerDay = BigDecimal(req.pricePerDay),
             horsepower = req.horsepower,
-            fuelType = req.fuelType,
+            fuelType = req.fuelType.toString,
             features = req.features.map(_.value).toList,
             city = req.city,
             seatsAmount = req.seatsAmount,

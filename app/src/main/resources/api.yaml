@@ -240,6 +240,122 @@ paths:
           name: features
           description: comma separated 'list' of features
       description: List available cars with their info - this is a public endpoint
+  '/offer/{offerId}':
+    delete:
+      summary: Delete offer
+      operationId: delete-offer
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Delete car offer
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer token
+          required: true
+    parameters:
+      - schema:
+          type: string
+        name: offerId
+        in: path
+        required: true
+        description: offer id
+    post:
+      summary: Add pictures
+      operationId: post-offer-offerId
+      responses:
+        '201':
+          description: Created
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+              required:
+                - image
+        description: ''
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer token
+          required: true
+  '/reservation/{offerId}':
+    get:
+      summary: Reserved car dates
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationList'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: get-reservation
+      description: Returns the dates when the car is rented
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationList'
+    parameters:
+      - schema:
+          type: string
+        name: offerId
+        in: path
+        required: true
+        description: offer id
+    post:
+      summary: Make reservation
+      operationId: post-reservation-offerId
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer token
+          required: true
+      description: Request a reservation
 components:
   schemas:
     UserCredentials:
@@ -303,6 +419,8 @@ components:
         - error
     UserProfile:
       title: UserProfile
+      x-stoplight:
+        id: x1use4hvts9df
       type: object
       properties:
         first_name:
@@ -337,6 +455,8 @@ components:
       description: Describes arbitrary features
     CarOfferRes:
       title: CarOfferRes
+      x-stoplight:
+        id: eec0f5d991777
       type: object
       x-examples: {}
       properties:
@@ -384,12 +504,16 @@ components:
         - city
     ImageUrl:
       title: ImageUrl
+      x-stoplight:
+        id: xeh7gqp7n1l8t
       type: object
       properties:
         url:
           type: string
     Point:
       title: Point
+      x-stoplight:
+        id: w12uet1gmmy0k
       type: object
       description: Describes point coordinates in 2D
       properties:
@@ -416,6 +540,7 @@ components:
           point:
             lat: string
             lon: string
+      title: CarOfferReq
       properties:
         make:
           type: string
@@ -428,7 +553,7 @@ components:
         horsepower:
           type: string
         fuel_type:
-          type: string
+          $ref: '#/components/schemas/FuelType'
         features:
           type: array
           items:
@@ -457,7 +582,92 @@ components:
         - features
         - seats_amount
         - city
-      title: CarOfferReq
+    FuelType:
+      title: FuelType
+      x-stoplight:
+        id: hllbvi0d741gc
+      type: string
+      enum:
+        - gas
+        - diesel
+        - electric
+        - hybrid
+    MaskedProfile:
+      title: MaskedProfile
+      x-stoplight:
+        id: ye3nd0f5yjfev
+      type: object
+      description: Masked user profile
+      properties:
+        name:
+          type: string
+        profile_picture_url:
+          type: string
+      required:
+        - name
+        - profile_picture_url
+    ReservationStatus:
+      title: ReservationStatus
+      x-stoplight:
+        id: i6n5rermheu2n
+      type: string
+      enum:
+        - requested
+        - accepted
+        - finished
+        - in_progress
+    Reservation:
+      title: Reservation
+      x-stoplight:
+        id: cwr40hi509oir
+      type: object
+      description: car reservation
+      properties:
+        from:
+          type: string
+          description: from date
+        to:
+          type: string
+          description: to date
+        renter_id:
+          type: string
+      required:
+        - from
+        - to
+        - renter_id
+    ReservationList:
+      title: ReservationList
+      x-stoplight:
+        id: 8r0mlwme9r7om
+      type: array
+      items:
+        $ref: '#/components/schemas/Reservation'
+      description: list of reservations for certain car offer
+    MakeReservation:
+      title: MakeReservation
+      x-stoplight:
+        id: 91z06sx14nwyf
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        insurance:
+          $ref: '#/components/schemas/Insurance'
+      required:
+        - from
+        - to
+        - insurance
+    Insurance:
+      title: Insurance
+      x-stoplight:
+        id: vbvwlg724l32p
+      type: string
+      enum:
+        - cheap
+        - medium
+        - expensive
   securitySchemes:
     token:
       type: http
