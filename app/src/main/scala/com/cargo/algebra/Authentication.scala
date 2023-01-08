@@ -68,7 +68,10 @@ object Authentication {
     ): IO[ApplicationError, Unit] =
       for {
         _ <- ZIO.logInfo("Verify email request")
-        user <- getUser(rawToken)(tokens, users)
+        token <- tokens.verify(rawToken)
+        _ <- ZIO.unless(token.tpe == VerificationToken)(ZIO.fail(InvalidToken("wrong token tpe")))
+        userO <- users.find(token.subject).orElseFail(DatabaseError)
+        user <- ZIO.fromOption(userO).orElseFail(UserNotFound)
         verificationO <- users.findVerificationRow(user.id).orElseFail(DatabaseError)
         isVerified <-
           ZIO.fromOption(verificationO).mapBoth(_ => UnexpectedError(""), _.code == code)

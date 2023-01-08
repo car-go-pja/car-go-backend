@@ -105,7 +105,7 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
   ): RIO[Authentication with CarOffers, Resource.PostOfferOfferIdResponse] =
     CarOffers
       .addImage(image.toZStream(), CarOffer.Id(UUID.fromString(offerId)))(parseToken(authorization))
-      .as(respond.Created)
+      .as(respond.Created) //add bad request for uuid and forbidden for not an owner
       .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
 
   override def deleteOffer(respond: Resource.DeleteOfferResponse.type)(
@@ -140,6 +140,10 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
         ZIO.fail(new RuntimeException(s"unexpected error: $msg"))
       case _: ApplicationError.InvalidCode.type =>
         ZIO.succeed(unauthorized(ErrorResponse("invalid_code", None)))
+      case ApplicationError.OfferNotFound(msg) =>
+        ZIO.succeed(unauthorized(ErrorResponse("offer_not_found", msg.some)))
+      case _: ApplicationError.NotAnOwner.type =>
+        ZIO.succeed(unauthorized(ErrorResponse("forbidden", None)))
       case _: ApplicationError.InvalidPassword.type =>
         ZIO.succeed(unauthorized(ErrorResponse("invalid_password", None)))
       case ApplicationError.InvalidToken(msg) =>

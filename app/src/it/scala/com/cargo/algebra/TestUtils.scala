@@ -36,7 +36,7 @@ object TestUtils {
   val stubS3: ZLayer[Any, Nothing, S3] = stub(Path("/tmp/s3-data"))
 
   val storageCfgLayer: ZLayer[Any, Nothing, StorageConfig] =
-    ZLayer.succeed(StorageConfig("", "", ""))
+    ZLayer.succeed(StorageConfig("foo", "bar", "baz"))
 
   val mockedEmailNotification: ULayer[EmailNotification] = ZLayer.succeed {
     new EmailNotification {

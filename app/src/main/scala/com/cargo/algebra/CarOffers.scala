@@ -137,6 +137,11 @@ object CarOffers {
     )(rawToken: String): ZIO[Authentication with CarOffers, ApplicationError, Unit] =
       for {
         _ <- ZIO.logInfo("Add image request")
+        user <- getUser(rawToken)(tokens, usersRepository)
+        offerO <- carOffersRepo.get(offerId)
+        offer <-
+          ZIO.fromOption(offerO).orElseFail(ApplicationError.OfferNotFound(offerId.value.toString))
+        _ <- ZIO.unless(user.id == offer.ownerId)(ZIO.fail(ApplicationError.NotAnOwner))
         randomKey <- ZIO.succeed(Random.alphanumeric.take(7).mkString(""))
         resource = s"offers/${offerId.value}/$randomKey.jpg"
         _ <-
@@ -148,6 +153,10 @@ object CarOffers {
           )(2)
             .mapError(err => UnexpectedError(err.getMessage): ApplicationError)
             .tapError(err => ZIO.logError(s"Failed to save an img: $err"))
+        _ <- carOffersRepo.saveImage(
+          s"https://${cfg.bucketName}.s3.eu-north-1.amazonaws.com/$resource"
+        )
+        _ <- ZIO.logInfo("Successfully added image")
       } yield ()
   }
 
