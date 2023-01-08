@@ -40,7 +40,7 @@ trait CarOffersRepository {
 
   def get(offerId: CarOffer.Id): IO[DatabaseError.type, Option[CarOffer]]
 
-  def saveImage(url: String): IO[DatabaseError.type, Unit]
+  def saveImage(url: String, offerId: CarOffer.Id): IO[DatabaseError.type, Unit]
 }
 
 object CarOffersRepository extends DoobieInstances {
@@ -100,8 +100,11 @@ object CarOffersRepository extends DoobieInstances {
     ): IO[ApplicationError.DatabaseError.type, Option[CarOffer]] =
       SQL.get(offerId).option.transact(xa).orElseFail(DatabaseError)
 
-    override def saveImage(url: String): IO[ApplicationError.DatabaseError.type, Unit] =
-      SQL.saveImage(url).run.transact(xa).unit.orElseFail(DatabaseError)
+    override def saveImage(
+        url: String,
+        offerId: CarOffer.Id
+    ): IO[ApplicationError.DatabaseError.type, Unit] =
+      SQL.saveImage(url, offerId).run.transact(xa).unit.orElseFail(DatabaseError)
   }
 
   private object SQL {
@@ -141,8 +144,8 @@ object CarOffersRepository extends DoobieInstances {
     def get(offerId: CarOffer.Id): Query0[CarOffer] =
       sql"SELECT * FROM cargo.car_offers WHERE id = $offerId".query[CarOffer]
 
-    def saveImage(url: String): Update0 =
-      sql"""UPDATE cargo.car_offers SET img_urls = array_append(img_urls, $url)""".update
+    def saveImage(url: String, offerId: CarOffer.Id): Update0 =
+      sql"""UPDATE cargo.car_offers SET img_urls = array_append(img_urls, $url) WHERE id = $offerId""".update
 
     implicit val pointType: Meta[Point] =
       Meta[PGpoint].timap(p => Point(p.x, p.y))(p => new PGpoint(p.lat, p.lon))

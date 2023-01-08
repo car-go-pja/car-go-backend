@@ -154,7 +154,8 @@ object CarOffers {
             .mapError(err => UnexpectedError(err.getMessage): ApplicationError)
             .tapError(err => ZIO.logError(s"Failed to save an img: $err"))
         _ <- carOffersRepo.saveImage(
-          s"https://${cfg.bucketName}.s3.eu-north-1.amazonaws.com/$resource"
+          s"https://${cfg.bucketName}.s3.eu-north-1.amazonaws.com/$resource",
+          offerId
         )
         _ <- ZIO.logInfo("Successfully added image")
       } yield ()
