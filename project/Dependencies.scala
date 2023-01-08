@@ -17,6 +17,7 @@ object Dependencies {
     "dev.zio" %% "zio-test" % v.zio % "it,test",
     "dev.zio" %% "zio-test-sbt" % v.zio % "it,test",
     "dev.zio" %% "zio-test-magnolia" % v.zio % "it,test",
+    "dev.zio" %% "zio-s3" % "0.4.2.1",
     "io.zonky.test" % "embedded-postgres" % "1.3.1" % IntegrationTest,
     "io.zonky.test.postgres" % "embedded-postgres-binaries-darwin-amd64" % "13.4.0" % Runtime,
     "org.flywaydb" % "flyway-core" % "7.1.1" % IntegrationTest,

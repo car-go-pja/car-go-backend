@@ -1,15 +1,16 @@
 package com.cargo.api
 
 import com.cargo.algebra.{Authentication, CarOffers}
-
 import cats.syntax.option._
 import zio._
 import com.cargo.api.generated.{Handler, Resource}
 import com.cargo.api.generated.definitions.dto._
-import com.cargo.model.Point
+import com.cargo.model.{CarOffer, Point}
+import zio.stream.interop.fs2z._
 import com.cargo.error.ApplicationError
 
 import java.time.Instant
+import java.util.UUID
 
 final class MainController extends Handler[RIO[Authentication with CarOffers, *]] {
   override def login(
@@ -96,6 +97,36 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
       body: Option[UserProfile],
       authorization: String
   ): RIO[CarOffers, Resource.PostUserProfileResponse] = ???
+
+  override def postOfferOfferId(respond: Resource.PostOfferOfferIdResponse.type)(
+      offerId: String,
+      image: fs2.Stream[RIO[Authentication with CarOffers, *], Byte],
+      authorization: String
+  ): RIO[Authentication with CarOffers, Resource.PostOfferOfferIdResponse] =
+    CarOffers
+      .addImage(image.toZStream(), CarOffer.Id(UUID.fromString(offerId)))(parseToken(authorization))
+      .as(respond.Created)
+      .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+
+  override def deleteOffer(respond: Resource.DeleteOfferResponse.type)(
+      offerId: String,
+      authorization: String
+  ): RIO[Authentication with CarOffers, Resource.DeleteOfferResponse] = ???
+
+  override def postReservationOfferId(respond: Resource.PostReservationOfferIdResponse.type)(
+      offerId: String,
+      authorization: String
+  ): RIO[Authentication with CarOffers, Resource.PostReservationOfferIdResponse] = ???
+
+  override def getReservation(respond: Resource.GetReservationResponse.type)(
+      offerId: String,
+      body: Option[Vector[Reservation]]
+  ): RIO[Authentication with CarOffers, Resource.GetReservationResponse] = ???
+
+  private def catchBadRequestError[Resp](
+      badRequest: ErrorResponse => Resp,
+      orElse: ApplicationError => Resp
+  )(error: ApplicationError): ZIO[Any, Throwable, Resp] = ???
 
   private def catchApplicationError[Resp](
       unauthorized: ErrorResponse => Resp

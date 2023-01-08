@@ -84,7 +84,12 @@ object CarOffersRepository extends DoobieInstances {
         city: Option[String],
         features: List[String]
     ): IO[ApplicationError.DatabaseError.type, List[CarOffer]] =
-      SQL.list(from, to, city, features).to[List].transact(xa).tapError(err => ZIO.logError(err.getMessage)).orElseFail(DatabaseError)
+      SQL
+        .list(from, to, city, features)
+        .to[List]
+        .transact(xa)
+        .tapError(err => ZIO.logError(err.getMessage))
+        .orElseFail(DatabaseError)
   }
 
   private object SQL {
@@ -103,8 +108,8 @@ object CarOffersRepository extends DoobieInstances {
         geolocation: Option[Point],
         createdAt: Instant
     ): Update0 =
-      sql"""INSERT INTO cargo.car_offers (id, owner_id, make, model, year, price_per_day, horsepower, fuel_type, features, city, seats_amount, geolocation, created_at)
-           VALUES ($id, $ownerId, $make, $model, $year, $pricePerDay, $horsepower, $fuelType, $features, $city, $seatsAmount, $geolocation, $createdAt)""".update
+      sql"""INSERT INTO cargo.car_offers (id, owner_id, make, model, year, price_per_day, horsepower, fuel_type, features, city, seats_amount, geolocation, created_at, img_urls)
+           VALUES ($id, $ownerId, $make, $model, $year, $pricePerDay, $horsepower, $fuelType, $features, $city, $seatsAmount, $geolocation, $createdAt, '{}')""".update
 
     def list(
         from: Option[Instant],
@@ -113,9 +118,12 @@ object CarOffersRepository extends DoobieInstances {
         features: List[String]
     ): Query0[CarOffer] = {
       val isCity = city.map(c => fr"city = $c")
-      val containsFeatures = Option.unless(features.isEmpty)(fr"EXISTS (SELECT 1 FROM unnest($features) WHERE unnest = ANY(features) AND features @> $features)")
+      val containsFeatures = Option.unless(features.isEmpty)(
+        fr"EXISTS (SELECT 1 FROM unnest($features) WHERE unnest = ANY(features) AND features @> $features)"
+      )
 
-      (fr"""SELECT * FROM cargo.car_offers""" ++ whereAndOpt(isCity, containsFeatures)).query[CarOffer]
+      (fr"""SELECT * FROM cargo.car_offers""" ++ whereAndOpt(isCity, containsFeatures))
+        .query[CarOffer]
     }
 
     implicit val pointType: Meta[Point] =

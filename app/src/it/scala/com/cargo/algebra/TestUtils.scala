@@ -1,6 +1,8 @@
 package com.cargo.algebra
 
-import com.cargo.config.DatabaseConfig
+import com.cargo.config.{DatabaseConfig, StorageConfig}
+import zio.nio.file.Path
+import zio.s3._
 import com.cargo.error.ApplicationError
 import com.cargo.service.EmailNotification
 import org.postgresql.ds.PGSimpleDataSource
@@ -31,9 +33,17 @@ object TestUtils {
     } yield DatabaseConfig(ds.getUrl, ds.getUser, ds.getPassword)
   }
 
+  val stubS3: ZLayer[Any, Nothing, S3] = stub(Path("/tmp/s3-data"))
+
+  val storageCfgLayer: ZLayer[Any, Nothing, StorageConfig] =
+    ZLayer.succeed(StorageConfig("", "", ""))
+
   val mockedEmailNotification: ULayer[EmailNotification] = ZLayer.succeed {
     new EmailNotification {
-      override def sendVerificationEmail(addressee: String, code: String): IO[ApplicationError.IntegrationError, Unit] = ZIO.unit
+      override def sendVerificationEmail(
+          addressee: String,
+          code: String
+      ): IO[ApplicationError.IntegrationError, Unit] = ZIO.unit
     }
   }
 }

@@ -297,6 +297,9 @@ paths:
                   format: binary
               required:
                 - image
+            encoding:
+              image: # Property name
+                contentType: image/png, image/jpg
         description: ''
       parameters:
         - schema:

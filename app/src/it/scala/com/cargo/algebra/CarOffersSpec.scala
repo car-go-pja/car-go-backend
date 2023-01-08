@@ -29,17 +29,17 @@ object CarOffersSpec extends ZIOSpecDefault {
           after <- CarOffers.list(None, None, None, List.empty[String])
         } yield assertTrue(before.size == 1, after.size == 2)
       },
-      test("should find offer by city"){
+      test("should find offer by city") {
         for {
           offers <- CarOffers.list(None, None, Some("Warszawa"), List.empty[String])
         } yield assertTrue(offers.size == 1, offers.head.city == "Warszawa")
       },
-      test("should find offer by features"){
+      test("should find offer by features") {
         val expectedFeatures = List("four_by_four", "ac")
         for {
           offers <- CarOffers.list(None, None, None, expectedFeatures)
         } yield assertTrue(offers.size == 1, offers.head.features.exists(expectedFeatures.contains))
-      },
+      }
     ).provideShared(
       Authentication.live,
       embeddedPostgresLayer.orDie,
@@ -50,6 +50,8 @@ object CarOffersSpec extends ZIOSpecDefault {
       dbConfigLayer,
       ApplicationConfig.live.narrow(_.token),
       CarOffersRepository.live,
-      CarOffers.live
+      CarOffers.live,
+      stubS3,
+      storageCfgLayer
     ) @@ TestAspect.silentLogging @@ TestAspect.sequential
 }

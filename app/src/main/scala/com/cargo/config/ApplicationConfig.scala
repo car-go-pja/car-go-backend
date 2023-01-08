@@ -9,7 +9,8 @@ final case class ApplicationConfig(
     server: ServerConfig,
     database: DatabaseConfig,
     token: TokenConfig,
-    sendgridConfig: SendGridConfig
+    sendgridConfig: SendGridConfig,
+    storage: StorageConfig
 )
 
 object ApplicationConfig {
@@ -17,6 +18,7 @@ object ApplicationConfig {
     .zip(nested("database")(descriptor[DatabaseConfig]))
     .zip(nested("token")(TokenConfig.configuration))
     .zip(nested("sendgrid")(descriptor[SendGridConfig]))
+    .zip(nested("storage")(descriptor[StorageConfig]))
     .to[ApplicationConfig]
 
   val live = TypesafeConfig.fromResourcePath(configuration)
