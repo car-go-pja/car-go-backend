@@ -37,6 +37,8 @@ trait CarOffers {
   def addImage(img: ZStream[Authentication with CarOffers, Throwable, Byte], offerId: CarOffer.Id)(
       rawToken: String
   ): ZIO[Authentication with CarOffers, ApplicationError, Unit]
+
+  def get(offerId: CarOffer.Id): IO[ApplicationError, CarOffer]
 }
 
 object CarOffers {
@@ -79,6 +81,9 @@ object CarOffers {
       rawToken: String
   ): ZIO[Authentication with CarOffers, ApplicationError, Unit] =
     ZIO.serviceWithZIO[CarOffers](_.addImage(img, offerId)(rawToken))
+
+  def get(offerId: CarOffer.Id): ZIO[CarOffers, ApplicationError, CarOffer] =
+    ZIO.serviceWithZIO[CarOffers](_.get(offerId))
 
   final case class CarOffersLive(
       tokens: Tokens,
@@ -161,6 +166,13 @@ object CarOffers {
         )
         _ <- ZIO.logInfo("Successfully added image")
       } yield ()
+
+    override def get(offerId: CarOffer.Id): IO[ApplicationError, CarOffer] =
+      for {
+        offerO <- carOffersRepo.get(offerId)
+        offer <-
+          ZIO.fromOption(offerO).orElseFail(ApplicationError.OfferNotFound(offerId.value.toString))
+      } yield offer
   }
 
   val live = ZLayer.fromFunction(CarOffersLive.apply _)

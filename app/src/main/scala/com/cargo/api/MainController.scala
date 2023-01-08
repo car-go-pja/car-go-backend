@@ -120,6 +120,15 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
       authorization: String
   ): RIO[Authentication with CarOffers, Resource.DeleteOfferResponse] = ???
 
+  override def getOfferOfferId(respond: Resource.GetOfferOfferIdResponse.type)(
+      offerId: String
+  ): RIO[Authentication with CarOffers, Resource.GetOfferOfferIdResponse] =
+    CarOffers
+      .get(CarOffer.Id(UUID.fromString(offerId)))
+      .map(mapCarOffer)
+      .map(respond.Ok)
+      .catchAll(err => catchApplicationError(respond.BadRequest)(err))
+
   override def getReservation(respond: Resource.GetReservationResponse.type)(
       offerId: String,
       body: Option[Vector[Reservation]]
@@ -127,8 +136,15 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
 
   private def catchBadRequestError[Resp](
       badRequest: ErrorResponse => Resp,
-      orElse: ApplicationError => Resp
-  )(error: ApplicationError): ZIO[Any, Throwable, Resp] = ???
+      orElse: ApplicationError => Task[Resp]
+  )(error: ApplicationError): ZIO[Any, Throwable, Resp] =
+    error match {
+      case ApplicationError.OfferNotFound(msg) =>
+        ZIO.succeed(badRequest(ErrorResponse("offer_not_found", msg.some)))
+      case _: ApplicationError.UserNotFound.type =>
+        ZIO.succeed(badRequest(ErrorResponse("user_not_found", None)))
+      case other => orElse(other)
+    }
 
   private def catchApplicationError[Resp](
       unauthorized: ErrorResponse => Resp

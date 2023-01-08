@@ -308,8 +308,8 @@ paths:
               required:
                 - image
             encoding:
-              image: # Property name
-                contentType: image/png, image/jpg
+              image:
+                contentType: 'image/png, image/jpg'
         description: ''
       parameters:
         - schema:
@@ -318,6 +318,22 @@ paths:
           name: Authorization
           description: Bearer token
           required: true
+    get:
+      summary: Get car offer info
+      operationId: get-offer-offerId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarOfferRes'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   '/reservation/{offerId}':
     get:
       summary: Reserved car dates
@@ -437,8 +453,6 @@ components:
         - error
     UserProfile:
       title: UserProfile
-      x-stoplight:
-        id: x1use4hvts9df
       type: object
       properties:
         first_name:
@@ -473,8 +487,6 @@ components:
       description: Describes arbitrary features
     CarOfferRes:
       title: CarOfferRes
-      x-stoplight:
-        id: eec0f5d991777
       type: object
       x-examples: {}
       properties:
@@ -510,6 +522,8 @@ components:
         city:
           type: string
       required:
+        - id
+        - owner_id
         - make
         - model
         - year
@@ -522,16 +536,12 @@ components:
         - city
     ImageUrl:
       title: ImageUrl
-      x-stoplight:
-        id: xeh7gqp7n1l8t
       type: object
       properties:
         url:
           type: string
     Point:
       title: Point
-      x-stoplight:
-        id: w12uet1gmmy0k
       type: object
       description: Describes point coordinates in 2D
       properties:
@@ -602,8 +612,6 @@ components:
         - city
     FuelType:
       title: FuelType
-      x-stoplight:
-        id: hllbvi0d741gc
       type: string
       enum:
         - gas
@@ -612,8 +620,6 @@ components:
         - hybrid
     MaskedProfile:
       title: MaskedProfile
-      x-stoplight:
-        id: ye3nd0f5yjfev
       type: object
       description: Masked user profile
       properties:
@@ -626,8 +632,6 @@ components:
         - profile_picture_url
     ReservationStatus:
       title: ReservationStatus
-      x-stoplight:
-        id: i6n5rermheu2n
       type: string
       enum:
         - requested
@@ -636,8 +640,6 @@ components:
         - in_progress
     Reservation:
       title: Reservation
-      x-stoplight:
-        id: cwr40hi509oir
       type: object
       description: car reservation
       properties:
@@ -655,16 +657,12 @@ components:
         - renter_id
     ReservationList:
       title: ReservationList
-      x-stoplight:
-        id: 8r0mlwme9r7om
       type: array
       items:
         $ref: '#/components/schemas/Reservation'
       description: list of reservations for certain car offer
     MakeReservation:
       title: MakeReservation
-      x-stoplight:
-        id: 91z06sx14nwyf
       type: object
       properties:
         from:
@@ -679,8 +677,6 @@ components:
         - insurance
     Insurance:
       title: Insurance
-      x-stoplight:
-        id: vbvwlg724l32p
       type: string
       enum:
         - cheap

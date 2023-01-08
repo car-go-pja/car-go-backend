@@ -10,8 +10,8 @@ package object api {
 
   def mapCarOffer: PartialFunction[CarOffer, CarOfferRes] =
     _.into[CarOfferRes]
-      .withFieldComputed(_.id, _.id.value.toString.some)
-      .withFieldComputed(_.ownerId, _.ownerId.value.toString.some)
+      .withFieldComputed(_.id, _.id.value.toString)
+      .withFieldComputed(_.ownerId, _.ownerId.value.toString)
       .withFieldComputed(_.features, _.features.flatMap(Feature.from).toVector)
       .withFieldComputed(
         _.point,
