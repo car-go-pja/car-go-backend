@@ -18,7 +18,8 @@ final case class CarOffer(
     city: String,
     seatsAmount: String,
     geolocation: Option[Point],
-    createdAt: Instant
+    createdAt: Instant,
+    imageUrls: List[String]
 )
 
 object CarOffer {

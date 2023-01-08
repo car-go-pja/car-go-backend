@@ -1,15 +1,16 @@
 package com.cargo.api
 
 import com.cargo.algebra.{Authentication, CarOffers}
-
 import cats.syntax.option._
 import zio._
 import com.cargo.api.generated.{Handler, Resource}
 import com.cargo.api.generated.definitions.dto._
-import com.cargo.model.Point
+import com.cargo.model.{CarOffer, Point}
+import zio.stream.interop.fs2z._
 import com.cargo.error.ApplicationError
 
 import java.time.Instant
+import java.util.UUID
 
 final class MainController extends Handler[RIO[Authentication with CarOffers, *]] {
   override def login(
@@ -65,7 +66,7 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
             year = req.year,
             pricePerDay = BigDecimal(req.pricePerDay),
             horsepower = req.horsepower,
-            fuelType = req.fuelType,
+            fuelType = req.fuelType.toString,
             features = req.features.map(_.value).toList,
             city = req.city,
             seatsAmount = req.seatsAmount,
@@ -97,6 +98,36 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
       authorization: String
   ): RIO[CarOffers, Resource.PostUserProfileResponse] = ???
 
+  override def postOfferOfferId(respond: Resource.PostOfferOfferIdResponse.type)(
+      offerId: String,
+      image: fs2.Stream[RIO[Authentication with CarOffers, *], Byte],
+      authorization: String
+  ): RIO[Authentication with CarOffers, Resource.PostOfferOfferIdResponse] =
+    CarOffers
+      .addImage(image.toZStream(), CarOffer.Id(UUID.fromString(offerId)))(parseToken(authorization))
+      .as(respond.Created) //add bad request for uuid and forbidden for not an owner
+      .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+
+  override def deleteOffer(respond: Resource.DeleteOfferResponse.type)(
+      offerId: String,
+      authorization: String
+  ): RIO[Authentication with CarOffers, Resource.DeleteOfferResponse] = ???
+
+  override def postReservationOfferId(respond: Resource.PostReservationOfferIdResponse.type)(
+      offerId: String,
+      authorization: String
+  ): RIO[Authentication with CarOffers, Resource.PostReservationOfferIdResponse] = ???
+
+  override def getReservation(respond: Resource.GetReservationResponse.type)(
+      offerId: String,
+      body: Option[Vector[Reservation]]
+  ): RIO[Authentication with CarOffers, Resource.GetReservationResponse] = ???
+
+  private def catchBadRequestError[Resp](
+      badRequest: ErrorResponse => Resp,
+      orElse: ApplicationError => Resp
+  )(error: ApplicationError): ZIO[Any, Throwable, Resp] = ???
+
   private def catchApplicationError[Resp](
       unauthorized: ErrorResponse => Resp
   )(error: ApplicationError): ZIO[Any, Throwable, Resp] =
@@ -109,6 +140,10 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
         ZIO.fail(new RuntimeException(s"unexpected error: $msg"))
       case _: ApplicationError.InvalidCode.type =>
         ZIO.succeed(unauthorized(ErrorResponse("invalid_code", None)))
+      case ApplicationError.OfferNotFound(msg) =>
+        ZIO.succeed(unauthorized(ErrorResponse("offer_not_found", msg.some)))
+      case _: ApplicationError.NotAnOwner.type =>
+        ZIO.succeed(unauthorized(ErrorResponse("forbidden", None)))
       case _: ApplicationError.InvalidPassword.type =>
         ZIO.succeed(unauthorized(ErrorResponse("invalid_password", None)))
       case ApplicationError.InvalidToken(msg) =>

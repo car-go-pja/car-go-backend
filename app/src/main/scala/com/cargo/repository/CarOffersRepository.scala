@@ -37,6 +37,10 @@ trait CarOffersRepository {
       city: Option[String],
       features: List[String]
   ): IO[DatabaseError.type, List[CarOffer]]
+
+  def get(offerId: CarOffer.Id): IO[DatabaseError.type, Option[CarOffer]]
+
+  def saveImage(url: String): IO[DatabaseError.type, Unit]
 }
 
 object CarOffersRepository extends DoobieInstances {
@@ -84,7 +88,20 @@ object CarOffersRepository extends DoobieInstances {
         city: Option[String],
         features: List[String]
     ): IO[ApplicationError.DatabaseError.type, List[CarOffer]] =
-      SQL.list(from, to, city, features).to[List].transact(xa).tapError(err => ZIO.logError(err.getMessage)).orElseFail(DatabaseError)
+      SQL
+        .list(from, to, city, features)
+        .to[List]
+        .transact(xa)
+        .tapError(err => ZIO.logError(err.getMessage))
+        .orElseFail(DatabaseError)
+
+    override def get(
+        offerId: CarOffer.Id
+    ): IO[ApplicationError.DatabaseError.type, Option[CarOffer]] =
+      SQL.get(offerId).option.transact(xa).orElseFail(DatabaseError)
+
+    override def saveImage(url: String): IO[ApplicationError.DatabaseError.type, Unit] =
+      SQL.saveImage(url).run.transact(xa).unit.orElseFail(DatabaseError)
   }
 
   private object SQL {
@@ -103,8 +120,8 @@ object CarOffersRepository extends DoobieInstances {
         geolocation: Option[Point],
         createdAt: Instant
     ): Update0 =
-      sql"""INSERT INTO cargo.car_offers (id, owner_id, make, model, year, price_per_day, horsepower, fuel_type, features, city, seats_amount, geolocation, created_at)
-           VALUES ($id, $ownerId, $make, $model, $year, $pricePerDay, $horsepower, $fuelType, $features, $city, $seatsAmount, $geolocation, $createdAt)""".update
+      sql"""INSERT INTO cargo.car_offers (id, owner_id, make, model, year, price_per_day, horsepower, fuel_type, features, city, seats_amount, geolocation, created_at, img_urls)
+           VALUES ($id, $ownerId, $make, $model, $year, $pricePerDay, $horsepower, $fuelType, $features, $city, $seatsAmount, $geolocation, $createdAt, '{}')""".update
 
     def list(
         from: Option[Instant],
@@ -113,10 +130,19 @@ object CarOffersRepository extends DoobieInstances {
         features: List[String]
     ): Query0[CarOffer] = {
       val isCity = city.map(c => fr"city = $c")
-      val containsFeatures = Option.unless(features.isEmpty)(fr"EXISTS (SELECT 1 FROM unnest($features) WHERE unnest = ANY(features) AND features @> $features)")
+      val containsFeatures = Option.unless(features.isEmpty)(
+        fr"EXISTS (SELECT 1 FROM unnest($features) WHERE unnest = ANY(features) AND features @> $features)"
+      )
 
-      (fr"""SELECT * FROM cargo.car_offers""" ++ whereAndOpt(isCity, containsFeatures)).query[CarOffer]
+      (fr"""SELECT * FROM cargo.car_offers""" ++ whereAndOpt(isCity, containsFeatures))
+        .query[CarOffer]
     }
+
+    def get(offerId: CarOffer.Id): Query0[CarOffer] =
+      sql"SELECT * FROM cargo.car_offers WHERE id = $offerId".query[CarOffer]
+
+    def saveImage(url: String): Update0 =
+      sql"""UPDATE cargo.car_offers SET img_urls = array_append(img_urls, $url)""".update
 
     implicit val pointType: Meta[Point] =
       Meta[PGpoint].timap(p => Point(p.x, p.y))(p => new PGpoint(p.lat, p.lon))

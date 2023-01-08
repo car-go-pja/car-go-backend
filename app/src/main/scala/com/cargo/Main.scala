@@ -3,7 +3,7 @@ package com.cargo
 import com.cargo.algebra.{Authentication, CarOffers, Tokens}
 import com.cargo.api.MainController
 import com.cargo.api.generated.Resource
-import com.cargo.config.{ApplicationConfig, SendGridConfig}
+import com.cargo.config.{ApplicationConfig, SendGridConfig, StorageConfig}
 import com.cargo.infrastructure.DatabaseTransactor
 import com.cargo.repository.{CarOffersRepository, UsersRepository}
 import com.cargo.service.EmailNotification
@@ -12,6 +12,9 @@ import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import zio.ZIOAppDefault
 import zio._
+import zio.s3._
+import software.amazon.awssdk.regions.Region.EU_NORTH_1
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import zio.interop.catz._
 import org.http4s.server.middleware.CORS
 import org.http4s.implicits._
@@ -29,6 +32,15 @@ object Main extends ZIOAppDefault {
       ApplicationConfig.live.narrow(_.token),
       ApplicationConfig.live.narrow(_.database),
       ApplicationConfig.live.narrow(_.sendgridConfig),
+      ApplicationConfig.live.narrow(_.storage),
+      ZLayer
+        .service[StorageConfig]
+        .flatMap(env =>
+          live(
+            EU_NORTH_1,
+            AwsBasicCredentials.create(env.get.accessKeyId, env.get.secret)
+          )
+        ),
       Authentication.live,
       UsersRepository.live,
       Tokens.live,
@@ -50,7 +62,8 @@ object Main extends ZIOAppDefault {
 
           val api =
             Router(
-              "/" -> new Resource[RIO[Authentication with CarOffers, *]]().routes(new MainController)
+              "/" -> new Resource[RIO[Authentication with CarOffers, *]]()
+                .routes(new MainController)
             ).orNotFound
 
           BlazeServerBuilder[RIO[Authentication with CarOffers, *]]

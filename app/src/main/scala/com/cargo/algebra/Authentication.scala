@@ -57,7 +57,10 @@ object Authentication {
         _ <- users.saveVerificationCode(verificationId, verificationCode, userId, createdAt)
         _ <- ZIO.logInfo(s"Successfully created user with id: $userId")
         _ <- emailNotification.sendVerificationEmail(email, verificationCode)
-        token <- tokens.issueVerificationToken(email, createdAt).mapError(err => UnexpectedError(err.getMessage))
+        token <-
+          tokens
+            .issueVerificationToken(email, createdAt)
+            .mapError(err => UnexpectedError(err.getMessage))
       } yield token
 
     override def verifyEmail(code: String)(
@@ -74,7 +77,7 @@ object Authentication {
           ZIO.fromOption(verificationO).mapBoth(_ => UnexpectedError(""), _.code == code)
         _ <- ZIO.unless(isVerified)(ZIO.fail(InvalidCode))
         _ <- users.markAsVerified(user.id).orElseFail(DatabaseError)
-        _ <- ZIO.logInfo(s"Successfully verified user: ${token.subject}")
+        _ <- ZIO.logInfo(s"Successfully verified user: ${user.email}")
       } yield ()
 
     override def login(email: String, password: String): IO[ApplicationError, Token] =
@@ -92,10 +95,7 @@ object Authentication {
     override def getUserInfo(rawToken: String): IO[ApplicationError, UserInfo] =
       for {
         _ <- ZIO.logInfo("Get user info request")
-        token <- tokens.verify(rawToken)
-        _ <- ZIO.unless(token.tpe == AccessToken)(ZIO.fail(InvalidToken("wrong token tpe")))
-        userO <- users.find(token.subject)
-        user <- ZIO.fromOption(userO).orElseFail(UserNotFound)
+        user <- getUser(rawToken)(tokens, users)
         _ <- ZIO.logInfo("Successfully sent user info")
       } yield UserInfo(user.id.value, user.email, user.isVerified)
   }
