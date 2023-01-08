@@ -72,7 +72,8 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
             seatsAmount = req.seatsAmount,
             geolocation = req.point.map(p => Point(p.lat.toDouble, p.lon.toDouble))
           )(parseToken(authorization))
-          .as(respond.Created)
+          .map(mapCarOffer)
+          .map(respond.Ok)
           .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
       case None => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_body")))
     }
@@ -108,15 +109,16 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
       .as(respond.Created) //add bad request for uuid and forbidden for not an owner
       .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
 
+  override def postReservationOfferId(respond: Resource.PostReservationOfferIdResponse.type)(
+      offerId: String,
+      body: Option[MakeReservation],
+      authorization: String
+  ): RIO[Authentication with CarOffers, Resource.PostReservationOfferIdResponse] = ???
+
   override def deleteOffer(respond: Resource.DeleteOfferResponse.type)(
       offerId: String,
       authorization: String
   ): RIO[Authentication with CarOffers, Resource.DeleteOfferResponse] = ???
-
-  override def postReservationOfferId(respond: Resource.PostReservationOfferIdResponse.type)(
-      offerId: String,
-      authorization: String
-  ): RIO[Authentication with CarOffers, Resource.PostReservationOfferIdResponse] = ???
 
   override def getReservation(respond: Resource.GetReservationResponse.type)(
       offerId: String,

@@ -25,7 +25,7 @@ trait CarOffers {
       city: String,
       seatsAmount: String,
       geolocation: Option[Point]
-  )(rawToken: String): IO[ApplicationError, Unit]
+  )(rawToken: String): IO[ApplicationError, CarOffer]
 
   def list(
       from: Option[Instant],
@@ -51,7 +51,7 @@ object CarOffers {
       city: String,
       seatsAmount: String,
       geolocation: Option[Point]
-  )(rawToken: String): ZIO[CarOffers, ApplicationError, Unit] =
+  )(rawToken: String): ZIO[CarOffers, ApplicationError, CarOffer] =
     ZIO.serviceWithZIO[CarOffers](
       _.add(
         make,
@@ -98,7 +98,7 @@ object CarOffers {
         city: String,
         seatsAmount: String,
         geolocation: Option[Point]
-    )(rawToken: String): IO[ApplicationError, Unit] =
+    )(rawToken: String): IO[ApplicationError, CarOffer] =
       for {
         _ <- ZIO.logInfo("Add car offer request")
         user <- getUser(rawToken)(tokens, usersRepository)
@@ -118,8 +118,10 @@ object CarOffers {
           geolocation,
           Instant.now()
         )
+        offerO <- carOffersRepo.get(id) // ugly
+        offer <- ZIO.fromOption(offerO).orElseFail(ApplicationError.OfferNotFound("ugly get offer"))
         _ <- ZIO.logInfo("Successfully added offer")
-      } yield ()
+      } yield offer
 
     override def list(
         from: Option[Instant],

@@ -153,6 +153,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
       description: ''
       requestBody:
         content:
@@ -171,8 +177,12 @@ paths:
       summary: Add car offer
       operationId: post-offers-add
       responses:
-        '201':
-          description: Created
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarOfferRes'
         '400':
           description: Bad Request
           headers: {}
@@ -359,6 +369,11 @@ paths:
           description: Bearer token
           required: true
       description: Request a reservation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MakeReservation'
 components:
   schemas:
     UserCredentials:
