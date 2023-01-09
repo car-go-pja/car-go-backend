@@ -10,4 +10,8 @@
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>
+
+    <logger name="org.http4s" level="DEBUG" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
 </configuration>

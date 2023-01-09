@@ -2,15 +2,13 @@ package com.cargo.api
 
 import com.cargo.algebra.{Authentication, CarOffers}
 import cats.syntax.option._
-import com.cargo.api.generated.Implicits.Base64String
 import zio._
 import com.cargo.api.generated.{Handler, Resource}
 import com.cargo.api.generated.definitions.dto._
 import com.cargo.model.{CarOffer, Point}
 import zio.stream.interop.fs2z._
 import com.cargo.error.ApplicationError
-import zio.stream.ZStream
-import zio.stream._
+import fs2.Stream
 
 import java.time.Instant
 import java.util.UUID
@@ -104,11 +102,11 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
 
   override def postOfferOfferId(respond: Resource.PostOfferOfferIdResponse.type)(
       offerId: String,
-      image: Base64String,
+      image: Stream[RIO[Authentication with CarOffers, *], Byte],
       authorization: String
   ): RIO[Authentication with CarOffers, Resource.PostOfferOfferIdResponse] =
     CarOffers
-      .addImage(ZStream.fromIterator(image.data.iterator), CarOffer.Id(UUID.fromString(offerId)))(
+      .addImage(image.toZStream(), CarOffer.Id(UUID.fromString(offerId)))(
         parseToken(authorization)
       )
       .as(respond.Created) //add bad request for uuid and forbidden for not an owner
