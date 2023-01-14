@@ -1,7 +1,7 @@
 package com.cargo.api
 
-import com.cargo.algebra.{Authentication, CarOffers}
-import cats.syntax.option._
+import com.cargo.algebra.{Authentication, CarOffers, Reservations, UserManager}
+import cats.syntax.all._
 import zio._
 import com.cargo.api.generated.{Handler, Resource}
 import com.cargo.api.generated.definitions.dto._
@@ -10,10 +10,9 @@ import zio.stream.interop.fs2z._
 import com.cargo.error.ApplicationError
 import fs2.Stream
 
-import java.time.Instant
-import java.util.UUID
+import java.time.{LocalDate, ZoneOffset}
 
-final class MainController extends Handler[RIO[Authentication with CarOffers, *]] {
+final class MainController extends Handler[RIO[Infrastructure, *]] {
   override def login(
       respond: Resource.LoginResponse.type
   )(body: Option[UserCredentials]): RIO[Authentication, Resource.LoginResponse] =
@@ -80,15 +79,15 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
     }
 
   override def getOffers(respond: Resource.GetOffersResponse.type)(
-      from: Option[String],
-      to: Option[String],
+      from: Option[LocalDate],
+      to: Option[LocalDate],
       city: Option[String],
       features: Option[String]
   ): RIO[CarOffers, Resource.GetOffersResponse] =
     CarOffers
       .list(
-        from = from.map(s => Instant.parse(s)),
-        to = to.map(s => Instant.parse(s)),
+        from = from.map(_.atStartOfDay().toInstant(ZoneOffset.UTC)),
+        to = to.map(_.atStartOfDay().toInstant(ZoneOffset.UTC)),
         city,
         features = features.fold(List.empty[String])(_.split(',').toList)
       )
@@ -100,42 +99,98 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
       authorization: String
   ): RIO[CarOffers, Resource.PostUserProfileResponse] = ???
 
-  override def postOfferOfferId(respond: Resource.PostOfferOfferIdResponse.type)(
+  override def addPictures(respond: Resource.AddPicturesResponse.type)(
       offerId: String,
-      image: Stream[RIO[Authentication with CarOffers, *], Byte],
+      image: Stream[RIO[Infrastructure, *], Byte],
       authorization: String
-  ): RIO[Authentication with CarOffers, Resource.PostOfferOfferIdResponse] =
-    CarOffers
-      .addImage(image.toZStream(), CarOffer.Id(UUID.fromString(offerId)))(
-        parseToken(authorization)
-      )
-      .as(respond.Created) //add bad request for uuid and forbidden for not an owner
-      .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+  ): RIO[Infrastructure, Resource.AddPicturesResponse] =
+    parseUUID(offerId) match {
+      case Some(uuid) =>
+        CarOffers
+          .addImage(image.toZStream(), CarOffer.Id(uuid))(
+            parseToken(authorization)
+          )
+          .as(respond.Created)
+          .catchAll(err =>
+            catchBadRequestError(
+              respond.BadRequest,
+              x => catchApplicationError(respond.Unauthorized)(x)
+            )(err)
+          )
+      case _ => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_offer_id", None)))
+    }
 
-  override def postReservationOfferId(respond: Resource.PostReservationOfferIdResponse.type)(
-      offerId: String,
-      body: Option[MakeReservation],
-      authorization: String
-  ): RIO[Authentication with CarOffers, Resource.PostReservationOfferIdResponse] = ???
+  override def getCarOffer(respond: Resource.GetCarOfferResponse.type)(
+      offerId: String
+  ): RIO[Authentication with CarOffers, Resource.GetCarOfferResponse] =
+    parseUUID(offerId) match {
+      case Some(uuid) =>
+        CarOffers
+          .get(CarOffer.Id(uuid))
+          .map(mapCarOffer)
+          .map(respond.Ok)
+          .catchAll(err => catchApplicationError(respond.BadRequest)(err))
+      case _ => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_offer_id", None)))
+    }
 
   override def deleteOffer(respond: Resource.DeleteOfferResponse.type)(
       offerId: String,
       authorization: String
-  ): RIO[Authentication with CarOffers, Resource.DeleteOfferResponse] = ???
+  ): RIO[Authentication with CarOffers, Resource.DeleteOfferResponse] =
+    parseUUID(offerId) match {
+      case Some(uuid) =>
+        CarOffers
+          .delete(CarOffer.Id(uuid))(parseToken(authorization))
+          .as(respond.NoContent)
+          .catchAll(err =>
+            catchBadRequestError(
+              respond.NotFound,
+              x => catchApplicationError(respond.Unauthorized)(x)
+            )(err)
+          )
+      case _ => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_offer_id", None)))
+    }
 
-  override def getOfferOfferId(respond: Resource.GetOfferOfferIdResponse.type)(
-      offerId: String
-  ): RIO[Authentication with CarOffers, Resource.GetOfferOfferIdResponse] =
-    CarOffers
-      .get(CarOffer.Id(UUID.fromString(offerId)))
-      .map(mapCarOffer)
-      .map(respond.Ok)
-      .catchAll(err => catchApplicationError(respond.BadRequest)(err))
+  override def makeReservation(respond: Resource.MakeReservationResponse.type)(
+      offerId: String,
+      body: Option[MakeReservation],
+      authorization: String
+  ): RIO[Reservations, Resource.MakeReservationResponse] =
+    parseUUID(offerId).product(body) match {
+      case Some((uuid, reservation)) =>
+        Reservations
+          .makeReservation(
+            CarOffer.Id(uuid),
+            reservation.from.atStartOfDay().toInstant(ZoneOffset.UTC),
+            reservation.to.atStartOfDay().toInstant(ZoneOffset.UTC),
+            reservation.insurance
+          )(parseToken(authorization))
+          .as(respond.NoContent)
+          .catchAll {
+            case _: ApplicationError.CarUnavailable.type =>
+              ZIO.succeed(respond.BadRequest(ErrorResponse("car_unavailable", None)))
+            case _: ApplicationError.InsufficientBalance.type =>
+              ZIO.succeed(respond.BadRequest(ErrorResponse("insufficient_balance", None)))
+            case _: ApplicationError.OwnerSelfRent.type =>
+              ZIO.succeed(respond.Forbidden(ErrorResponse("owner_self_rent", None)))
+            case other => catchApplicationError(respond.Unauthorized)(other)
+          }
+      case None => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_offer_id", None)))
+    }
 
   override def getReservation(respond: Resource.GetReservationResponse.type)(
       offerId: String,
-      body: Option[Vector[Reservation]]
-  ): RIO[Authentication with CarOffers, Resource.GetReservationResponse] = ???
+      authorization: String
+  ): RIO[Reservations, Resource.GetReservationResponse] =
+    parseUUID(offerId) match {
+      case Some(uuid) =>
+        Reservations
+          .list(CarOffer.Id(uuid))(parseToken(authorization))
+          .map(_.map(mapReservations).toVector)
+          .map(respond.Ok)
+          .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+      case _ => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_offer_id", None)))
+    }
 
   private def catchBadRequestError[Resp](
       badRequest: ErrorResponse => Resp,
@@ -161,6 +216,12 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
         ZIO.fail(new RuntimeException(s"unexpected error: $msg"))
       case _: ApplicationError.InvalidCode.type =>
         ZIO.succeed(unauthorized(ErrorResponse("invalid_code", None)))
+      case _: ApplicationError.CarUnavailable.type =>
+        ZIO.succeed(unauthorized(ErrorResponse("car_unavailable", None)))
+      case _: ApplicationError.InsufficientBalance.type =>
+        ZIO.succeed(unauthorized(ErrorResponse("insufficient_balance", None)))
+      case _: ApplicationError.OwnerSelfRent.type =>
+        ZIO.succeed(unauthorized(ErrorResponse("owner_self_rent", None)))
       case ApplicationError.OfferNotFound(msg) =>
         ZIO.succeed(unauthorized(ErrorResponse("offer_not_found", msg.some)))
       case _: ApplicationError.NotAnOwner.type =>
@@ -172,4 +233,14 @@ final class MainController extends Handler[RIO[Authentication with CarOffers, *]
       case ApplicationError.UserNotFound =>
         ZIO.succeed(unauthorized(ErrorResponse("user_not_found", None)))
     }
+
+  override def addBalance(respond: Resource.AddBalanceResponse.type)(
+      amount: BigDecimal,
+      authorization: String
+  ): RIO[UserManager, Resource.AddBalanceResponse] =
+    UserManager
+      .addBalance(amount)(parseToken(authorization))
+      .as(respond.Ok)
+      .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+
 }

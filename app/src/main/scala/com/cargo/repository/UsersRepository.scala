@@ -1,5 +1,6 @@
 package com.cargo.repository
 
+import com.cargo.error.ApplicationError
 import com.cargo.model.{User, VerificationRow}
 import doobie._
 import doobie.implicits._
@@ -24,6 +25,7 @@ trait UsersRepository {
   def markAsVerified(userId: User.Id): IO[DatabaseError.type, Unit]
   def isVerified(userId: User.Id): IO[DatabaseError.type, Boolean]
   def findVerificationRow(userId: User.Id): IO[DatabaseError.type, Option[VerificationRow]]
+  def changeBalance(userId: User.Id, balance: BigDecimal): IO[DatabaseError.type, Unit]
 }
 
 object UsersRepository extends DoobieInstances {
@@ -66,6 +68,9 @@ object UsersRepository extends DoobieInstances {
         userId: User.Id
     ): IO[DatabaseError.type, Option[VerificationRow]] =
       SQL.findVerificationRow(userId).option.transact(xa).orElseFail(DatabaseError)
+
+    override def changeBalance(userId: User.Id, balance: BigDecimal): IO[ApplicationError.DatabaseError.type, Unit] =
+      SQL.changeBalance(userId, balance).run.transact(xa).unit.orElseFail(DatabaseError)
   }
 
   val live = ZLayer.fromFunction(UsersLive.apply _)
@@ -88,5 +93,8 @@ object UsersRepository extends DoobieInstances {
 
     def findVerificationRow(userId: User.Id): Query0[VerificationRow] =
       sql"""SELECT * FROM cargo.verification WHERE user_id = $userId""".query[VerificationRow]
+
+    def changeBalance(userId: User.Id, balance: BigDecimal): Update0 =
+      sql"UPDATE cargo.users SET balance = balance + $balance WHERE id = $userId".update
   }
 }

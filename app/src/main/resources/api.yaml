@@ -3,7 +3,6 @@ info:
   title: car-go
   version: '1.0'
   description: ''
-  summary: Car-go backend api
 servers:
   - url: 'https://car-go-backend.herokuapp.com'
     description: prod env
@@ -62,12 +61,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserInfo'
-              examples:
-                Example 1:
-                  value:
-                    id: 165ecfd0-80a5-44f1-b3d2-c66313c96f6e
-                    email: test@email.com
-                    isVerified: false
         '401':
           description: Unauthorized
           content:
@@ -231,11 +224,13 @@ paths:
       parameters:
         - schema:
             type: string
+            format: date
           in: query
           name: from
           description: from datetime utc
         - schema:
             type: string
+            format: date
           in: query
           name: to
           description: to datetime utc
@@ -253,10 +248,16 @@ paths:
   '/offer/{offerId}':
     delete:
       summary: Delete offer
-      operationId: delete-offer
+      operationId: deleteOffer
       responses:
         '204':
           description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Unauthorized
           content:
@@ -286,10 +287,16 @@ paths:
         description: offer id
     post:
       summary: Add pictures
-      operationId: post-offer-offerId
+      operationId: addPictures
       responses:
         '201':
           description: Created
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Unauthorized
           content:
@@ -318,9 +325,10 @@ paths:
           name: Authorization
           description: Bearer token
           required: true
+      description: ''
     get:
       summary: Get car offer info
-      operationId: get-offer-offerId
+      operationId: getCarOffer
       responses:
         '200':
           description: OK
@@ -344,20 +352,30 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReservationList'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reservation'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      operationId: get-reservation
-      description: Returns the dates when the car is rented
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ReservationList'
+      operationId: getReservation
+      description: Returns the dates when the car is rented (for the owner)
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer token
+          required: true
     parameters:
       - schema:
           type: string
@@ -367,12 +385,24 @@ paths:
         description: offer id
     post:
       summary: Make reservation
-      operationId: post-reservation-offerId
+      operationId: makeReservation
       responses:
         '204':
           description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
           content:
             application/json:
               schema:
@@ -390,14 +420,37 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MakeReservation'
+  '/balance/{amount}':
+    post:
+      summary: Add balance
+      operationId: addBalance
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer token
+          required: true
+    parameters:
+      - schema:
+          type: number
+        name: amount
+        in: path
+        required: true
 components:
   schemas:
     UserCredentials:
       title: UserCredentials
       type: object
-      examples:
-        - email: test@email.com
-          password: fooBar!42
       properties:
         email:
           type: string
@@ -417,10 +470,6 @@ components:
       description: Token which authenticates user
     UserInfo:
       type: object
-      examples:
-        - id: 165ecfd0-80a5-44f1-b3d2-c66313c96f6e
-          email: test@email.com
-          isVerified: false
       description: Protected info about user
       title: UserInfo
       properties:
@@ -453,6 +502,8 @@ components:
         - error
     UserProfile:
       title: UserProfile
+      x-stoplight:
+        id: x1use4hvts9df
       type: object
       properties:
         first_name:
@@ -487,6 +538,8 @@ components:
       description: Describes arbitrary features
     CarOfferRes:
       title: CarOfferRes
+      x-stoplight:
+        id: eec0f5d991777
       type: object
       x-examples: {}
       properties:
@@ -507,8 +560,7 @@ components:
         fuel_type:
           type: string
         features:
-          type:
-            - array
+          type: array
           items:
             $ref: '#/components/schemas/Feature'
         images:
@@ -536,12 +588,16 @@ components:
         - city
     ImageUrl:
       title: ImageUrl
+      x-stoplight:
+        id: xeh7gqp7n1l8t
       type: object
       properties:
         url:
           type: string
     Point:
       title: Point
+      x-stoplight:
+        id: w12uet1gmmy0k
       type: object
       description: Describes point coordinates in 2D
       properties:
@@ -612,6 +668,8 @@ components:
         - city
     FuelType:
       title: FuelType
+      x-stoplight:
+        id: hllbvi0d741gc
       type: string
       enum:
         - gas
@@ -620,6 +678,8 @@ components:
         - hybrid
     MaskedProfile:
       title: MaskedProfile
+      x-stoplight:
+        id: ye3nd0f5yjfev
       type: object
       description: Masked user profile
       properties:
@@ -632,6 +692,8 @@ components:
         - profile_picture_url
     ReservationStatus:
       title: ReservationStatus
+      x-stoplight:
+        id: i6n5rermheu2n
       type: string
       enum:
         - requested
@@ -640,35 +702,40 @@ components:
         - in_progress
     Reservation:
       title: Reservation
+      x-stoplight:
+        id: cwr40hi509oir
       type: object
       description: car reservation
       properties:
         from:
           type: string
           description: from date
+          format: date
         to:
           type: string
           description: to date
+          format: date
         renter_id:
           type: string
+        total_price:
+          type: number
       required:
         - from
         - to
         - renter_id
-    ReservationList:
-      title: ReservationList
-      type: array
-      items:
-        $ref: '#/components/schemas/Reservation'
-      description: list of reservations for certain car offer
+        - total_price
     MakeReservation:
       title: MakeReservation
+      x-stoplight:
+        id: 91z06sx14nwyf
       type: object
       properties:
         from:
           type: string
+          format: date
         to:
           type: string
+          format: date
         insurance:
           $ref: '#/components/schemas/Insurance'
       required:
@@ -677,6 +744,8 @@ components:
         - insurance
     Insurance:
       title: Insurance
+      x-stoplight:
+        id: vbvwlg724l32p
       type: string
       enum:
         - cheap

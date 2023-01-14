@@ -41,6 +41,8 @@ trait CarOffersRepository {
   def get(offerId: CarOffer.Id): IO[DatabaseError.type, Option[CarOffer]]
 
   def saveImage(url: String, offerId: CarOffer.Id): IO[DatabaseError.type, Unit]
+
+  def delete(offerId: CarOffer.Id): IO[DatabaseError.type, Unit]
 }
 
 object CarOffersRepository extends DoobieInstances {
@@ -105,6 +107,9 @@ object CarOffersRepository extends DoobieInstances {
         offerId: CarOffer.Id
     ): IO[ApplicationError.DatabaseError.type, Unit] =
       SQL.saveImage(url, offerId).run.transact(xa).unit.orElseFail(DatabaseError)
+
+    override def delete(offerId: CarOffer.Id): IO[ApplicationError.DatabaseError.type, Unit] =
+      SQL.delete(offerId).run.transact(xa).unit.orElseFail(DatabaseError)
   }
 
   private object SQL {
@@ -137,7 +142,7 @@ object CarOffersRepository extends DoobieInstances {
         fr"EXISTS (SELECT 1 FROM unnest($features) WHERE unnest = ANY(features) AND features @> $features)"
       )
 
-      (fr"""SELECT * FROM cargo.car_offers""" ++ whereAndOpt(isCity, containsFeatures))
+      (fr"SELECT * FROM cargo.car_offers" ++ whereAndOpt(isCity, containsFeatures))
         .query[CarOffer]
     }
 
@@ -146,6 +151,9 @@ object CarOffersRepository extends DoobieInstances {
 
     def saveImage(url: String, offerId: CarOffer.Id): Update0 =
       sql"""UPDATE cargo.car_offers SET img_urls = array_append(img_urls, $url) WHERE id = $offerId""".update
+
+    def delete(offerId: CarOffer.Id): Update0 =
+      sql"DELETE FROM cargo.car_offers WHERE id = $offerId".update
 
     implicit val pointType: Meta[Point] =
       Meta[PGpoint].timap(p => Point(p.x, p.y))(p => new PGpoint(p.lat, p.lon))

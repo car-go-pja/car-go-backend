@@ -1,5 +1,6 @@
 package com.cargo.algebra
 
+import com.cargo.api.Infrastructure
 import com.cargo.config.StorageConfig
 import com.cargo.error.ApplicationError
 import com.cargo.error.ApplicationError.UnexpectedError
@@ -34,11 +35,13 @@ trait CarOffers {
       features: List[String]
   ): IO[ApplicationError, List[CarOffer]]
 
-  def addImage(img: ZStream[Authentication with CarOffers, Throwable, Byte], offerId: CarOffer.Id)(
+  def addImage(img: ZStream[Infrastructure, Throwable, Byte], offerId: CarOffer.Id)(
       rawToken: String
-  ): ZIO[Authentication with CarOffers, ApplicationError, Unit]
+  ): ZIO[Infrastructure, ApplicationError, Unit]
 
   def get(offerId: CarOffer.Id): IO[ApplicationError, CarOffer]
+
+  def delete(offerId: CarOffer.Id)(rawToken: String): IO[ApplicationError, Unit]
 }
 
 object CarOffers {
@@ -77,13 +80,16 @@ object CarOffers {
   ): ZIO[CarOffers, ApplicationError, List[CarOffer]] =
     ZIO.serviceWithZIO[CarOffers](_.list(from, to, city, features))
 
-  def addImage(img: ZStream[Authentication with CarOffers, Throwable, Byte], offerId: CarOffer.Id)(
+  def addImage(img: ZStream[Infrastructure, Throwable, Byte], offerId: CarOffer.Id)(
       rawToken: String
-  ): ZIO[Authentication with CarOffers, ApplicationError, Unit] =
+  ): ZIO[Infrastructure, ApplicationError, Unit] =
     ZIO.serviceWithZIO[CarOffers](_.addImage(img, offerId)(rawToken))
 
   def get(offerId: CarOffer.Id): ZIO[CarOffers, ApplicationError, CarOffer] =
     ZIO.serviceWithZIO[CarOffers](_.get(offerId))
+
+  def delete(offerId: CarOffer.Id)(rawToken: String): ZIO[CarOffers, ApplicationError, Unit] =
+    ZIO.serviceWithZIO[CarOffers](_.delete(offerId)(rawToken))
 
   final case class CarOffersLive(
       tokens: Tokens,
@@ -139,9 +145,9 @@ object CarOffers {
         .tap(offers => ZIO.logInfo(s"Successfully listed offers with size: ${offers.size}"))
 
     override def addImage(
-        img: ZStream[Authentication with CarOffers, Throwable, Byte],
+        img: ZStream[Infrastructure, Throwable, Byte],
         offerId: CarOffer.Id
-    )(rawToken: String): ZIO[Authentication with CarOffers, ApplicationError, Unit] =
+    )(rawToken: String): ZIO[Infrastructure, ApplicationError, Unit] =
       for {
         _ <- ZIO.logInfo("Add image request")
         user <- getUser(rawToken)(tokens, usersRepository)
@@ -173,6 +179,21 @@ object CarOffers {
         offer <-
           ZIO.fromOption(offerO).orElseFail(ApplicationError.OfferNotFound(offerId.value.toString))
       } yield offer
+
+    override def delete(offerId: CarOffer.Id)(rawToken: String): IO[ApplicationError, Unit] =
+      for {
+        _ <- ZIO.logInfo("Delete offer request")
+        user <- getUser(rawToken)(tokens, usersRepository)
+        offerO <- carOffersRepo.get(offerId)
+        offer <-
+          ZIO.fromOption(offerO).orElseFail(ApplicationError.OfferNotFound(offerId.value.toString))
+        _ <- ZIO.unless(user.id == offer.ownerId)(ZIO.fail(ApplicationError.NotAnOwner))
+        _ <- carOffersRepo.delete(offerId)
+        _ <- s3.deleteObject(cfg.bucketName, s"offers/${offerId.value}")
+          .mapError(err => UnexpectedError(err.getMessage): ApplicationError)
+          .tapError(err => ZIO.logError(s"Failed to delete offer images: $err"))
+      _ <- ZIO.logInfo("Successfully deleted offer")
+      } yield ()
   }
 
   val live = ZLayer.fromFunction(CarOffersLive.apply _)

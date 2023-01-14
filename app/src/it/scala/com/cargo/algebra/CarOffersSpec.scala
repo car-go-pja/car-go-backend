@@ -6,7 +6,7 @@ import com.cargo.config.ApplicationConfig
 import com.cargo.error.ApplicationError.NotAnOwner
 import com.cargo.infrastructure.DatabaseTransactor
 import com.cargo.model.CarOffer
-import com.cargo.repository.{CarOffersRepository, UsersRepository}
+import com.cargo.repository.{CarOffersRepository, ReservationsRepository, UsersRepository}
 import zio._
 import zio.stream.ZStream
 import zio.test.Assertion.{equalTo, fails}
@@ -89,6 +89,9 @@ object CarOffersSpec extends ZIOSpecDefault {
       CarOffersRepository.live,
       CarOffers.live,
       stubS3,
-      storageCfgLayer
+      storageCfgLayer,
+      Reservations.live,
+      ReservationsRepository.live,
+      UserManager.live
     ) @@ TestAspect.silentLogging @@ TestAspect.sequential
 }

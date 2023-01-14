@@ -9,29 +9,6 @@ ThisBuild / organizationName := "cargo"
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-def openApiGeneratorSettings(yaml: String, packageName: String) = Seq(
-  openApiGeneratorName := "scala-sttp",
-  openApiInputSpec := yaml,
-  openApiApiPackage := s"$packageName.api",
-  openApiModelPackage := s"$packageName.model",
-  openApiInvokerPackage := s"$packageName.core",
-  openApiOutputDir := ((Compile / baseDirectory).value / "generated").absolutePath,
-//  openApiAdditionalProperties := Map("modelPropertyNaming" -> "snake_case"),
-  Compile / sourceGenerators += Def
-    .task((file(openApiOutputDir.value) / "src" / "main" / "scala" ** "*" filter (!_.isDirectory)).get())
-    .dependsOn(openApiGenerate)
-    .taskValue,
-  Compile / managedSourceDirectories += file(openApiOutputDir.value) / "src" / "main" / "scala",
-  cleanFiles += file(openApiOutputDir.value),
-  libraryDependencies ++= Seq(
-    "com.softwaremill.sttp.client" %% "core" % "2.0.0",
-    "com.softwaremill.sttp.client" %% "json4s" % "2.0.0",
-    "com.softwaremill.sttp.client" %% "okhttp-backend" % "2.0.0",
-    "com.softwaremill.sttp.client" %% "play-json" % "2.0.0",
-    "org.json4s" %% "json4s-jackson" % "3.6.7"
-  )
-)
-
 lazy val app = (project in file("app"))
   .enablePlugins(GuardrailPlugin, DockerPlugin, JavaServerAppPackaging, FlywayPlugin)
   .settings(
@@ -56,7 +33,6 @@ lazy val app = (project in file("app"))
   )
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
-  .settings(openApiGeneratorSettings("app/src/main/resources/api.yaml", "com.cargo"))
   .settings(dockerSettings)
   .settings(flywaySettings)
 
