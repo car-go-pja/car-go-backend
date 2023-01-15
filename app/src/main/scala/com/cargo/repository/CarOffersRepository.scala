@@ -152,7 +152,7 @@ object CarOffersRepository extends DoobieInstances {
       }
 
 
-      (fr"SELECT o.* FROM cargo.car_offers o LEFT JOIN cargo.reservations r ON r.offer_id = o.id" ++ whereAndOpt(isCity, containsFeatures, fromTo))
+      (fr"SELECT DISTINCT ON (o.id) o.* FROM cargo.car_offers o LEFT JOIN cargo.reservations r ON r.offer_id = o.id" ++ whereAndOpt(isCity, containsFeatures, fromTo))
         .query[CarOffer]
     }
 
