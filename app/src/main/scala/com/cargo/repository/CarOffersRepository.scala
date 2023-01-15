@@ -5,6 +5,7 @@ import com.cargo.error.ApplicationError.DatabaseError
 import com.cargo.infrastructure.DoobieInstances
 import com.cargo.model.{CarOffer, User, Point}
 import doobie._
+import cats.syntax.all._
 import doobie.implicits._
 import Fragments.whereAndOpt
 import doobie.postgres.implicits._
@@ -146,8 +147,12 @@ object CarOffersRepository extends DoobieInstances {
       val containsFeatures = Option.unless(features.isEmpty)(
         fr"EXISTS (SELECT 1 FROM unnest($features) WHERE unnest = ANY(features) AND features @> $features)"
       )
+      val fromTo = from.product(to).map {
+        case (from, to) => fr"NOT (r.start_date, r.end_date) OVERLAPS ($from, $to)"
+      }
 
-      (fr"SELECT * FROM cargo.car_offers" ++ whereAndOpt(isCity, containsFeatures))
+
+      (fr"SELECT o.* FROM cargo.car_offers o LEFT JOIN cargo.reservations r ON r.offer_id = o.id" ++ whereAndOpt(isCity, containsFeatures, fromTo))
         .query[CarOffer]
     }
 
