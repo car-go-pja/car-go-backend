@@ -844,11 +844,17 @@ components:
           type: string
         total_price:
           type: number
+        model:
+          type: string
+        make:
+          type: string
       required:
         - from
         - to
         - renter_id
         - total_price
+        - model
+        - make
     MakeReservation:
       title: MakeReservation
       x-stoplight:

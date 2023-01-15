@@ -33,7 +33,7 @@ trait ReservationsRepository {
 
   def getOwnerReservations(
       ownerId: User.Id
-  ): IO[DatabaseError.type, List[Reservation]]
+  ): IO[DatabaseError.type, List[(Reservation, String, String)]]
 }
 
 object ReservationsRepository extends DoobieInstances {
@@ -67,7 +67,7 @@ object ReservationsRepository extends DoobieInstances {
 
     override def getOwnerReservations(
         ownerId: User.Id
-    ): IO[ApplicationError.DatabaseError.type, List[Reservation]] =
+    ): IO[ApplicationError.DatabaseError.type, List[(Reservation, String, String)]] =
       SQL
         .getOwnerReservations(ownerId)
         .to[List]
@@ -104,9 +104,9 @@ object ReservationsRepository extends DoobieInstances {
       )).query[Reservation]
     }
 
-    def getOwnerReservations(ownerId: User.Id): Query0[Reservation] =
-      sql"SELECT r.* FROM cargo.reservations r JOIN cargo.car_offers o ON r.offer_id = o.id WHERE o.owner_id = $ownerId"
-        .query[Reservation]
+    def getOwnerReservations(ownerId: User.Id): Query0[(Reservation, String, String)] =
+      sql"SELECT r.*, o.make, o.model FROM cargo.reservations r JOIN cargo.car_offers o ON r.offer_id = o.id WHERE o.owner_id = $ownerId"
+        .query[(Reservation, String, String)]
   }
 
   val live = ZLayer.fromFunction(ReservationsRepositoryLive.apply _)

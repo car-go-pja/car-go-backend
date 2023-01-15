@@ -1,6 +1,13 @@
 package com.cargo
 
-import com.cargo.api.generated.definitions.dto.{CarOfferRes, Feature, ImageUrl, Point, UserInfo, Reservation => ReservationDTO}
+import com.cargo.api.generated.definitions.dto.{
+  CarOfferRes,
+  Feature,
+  ImageUrl,
+  Point,
+  UserInfo,
+  Reservation => ReservationDTO
+}
 import io.scalaland.chimney.dsl._
 import cats.syntax.option._
 import com.cargo.algebra.{Authentication, CarOffers, Reservations, UserManager}
@@ -15,12 +22,17 @@ package object api {
 
   def parseToken(bearerToken: String): String = bearerToken.drop(7)
 
-  def mapReservations: PartialFunction[Reservation, ReservationDTO] =
-    _.into[ReservationDTO]
-      .withFieldComputed(_.from, r => LocalDate.ofInstant(r.startDate, ZoneOffset.UTC))
-      .withFieldComputed(_.to, r => LocalDate.ofInstant(r.endDate, ZoneOffset.UTC))
-      .withFieldComputed(_.renterId, _.renterId.value.toString)
-      .transform
+  def mapReservations: PartialFunction[(Reservation, String, String), ReservationDTO] = {
+    case (reservation, make, model) =>
+      reservation
+        .into[ReservationDTO]
+        .withFieldComputed(_.from, r => LocalDate.ofInstant(r.startDate, ZoneOffset.UTC))
+        .withFieldComputed(_.to, r => LocalDate.ofInstant(r.endDate, ZoneOffset.UTC))
+        .withFieldComputed(_.renterId, _.renterId.value.toString)
+        .withFieldComputed(_.make, _ => make)
+        .withFieldComputed(_.model, _ => model)
+        .transform
+  }
 
   def mapCarOffer: PartialFunction[CarOffer, CarOfferRes] =
     _.into[CarOfferRes]

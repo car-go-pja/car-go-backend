@@ -17,7 +17,7 @@ trait Reservations {
       rawToken: String
   ): IO[ApplicationError, Unit]
 
-  def list(rawToken: String): IO[ApplicationError, List[Reservation]]
+  def list(rawToken: String): IO[ApplicationError, List[(Reservation, String, String)]]
 }
 
 object Reservations {
@@ -27,7 +27,7 @@ object Reservations {
   ): ZIO[Reservations, ApplicationError, Unit] =
     ZIO.serviceWithZIO[Reservations](_.makeReservation(offerId, from, to, insurance)(rawToken))
 
-  def list(rawToken: String): ZIO[Reservations, ApplicationError, List[Reservation]] =
+  def list(rawToken: String): ZIO[Reservations, ApplicationError, List[(Reservation, String, String)]] =
     ZIO.serviceWithZIO[Reservations](_.list(rawToken))
 
   final case class ReservationsLive(
@@ -77,7 +77,7 @@ object Reservations {
       } yield ()
     }
 
-    override def list(rawToken: String): IO[ApplicationError, List[Reservation]] =
+    override def list(rawToken: String): IO[ApplicationError, List[(Reservation, String, String)]] =
       for {
         _ <- ZIO.logInfo("List reservations request")
         user <- getUser(rawToken)(tokens, usersRepo)
