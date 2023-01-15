@@ -41,6 +41,8 @@ trait CarOffers {
 
   def get(offerId: CarOffer.Id): IO[ApplicationError, CarOffer]
 
+  def listByUser(rawToken: String): IO[ApplicationError, List[CarOffer]]
+
   def delete(offerId: CarOffer.Id)(rawToken: String): IO[ApplicationError, Unit]
 }
 
@@ -90,6 +92,9 @@ object CarOffers {
 
   def delete(offerId: CarOffer.Id)(rawToken: String): ZIO[CarOffers, ApplicationError, Unit] =
     ZIO.serviceWithZIO[CarOffers](_.delete(offerId)(rawToken))
+
+  def listByUser(rawToken: String): ZIO[CarOffers, ApplicationError, List[CarOffer]] =
+    ZIO.serviceWithZIO(_.listByUser(rawToken))
 
   final case class CarOffersLive(
       tokens: Tokens,
@@ -194,6 +199,13 @@ object CarOffers {
           .tapError(err => ZIO.logError(s"Failed to delete offer images: $err"))
       _ <- ZIO.logInfo("Successfully deleted offer")
       } yield ()
+
+    override def listByUser(rawToken: String): IO[ApplicationError, List[CarOffer]] =
+      for {
+        _ <- ZIO.logInfo("List offers by user request")
+        user <- getUser(rawToken)(tokens, usersRepository)
+        offers <- carOffersRepo.listByOwner(user.id)
+      } yield offers
   }
 
   val live = ZLayer.fromFunction(CarOffersLive.apply _)

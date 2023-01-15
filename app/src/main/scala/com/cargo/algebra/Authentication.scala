@@ -2,8 +2,8 @@ package com.cargo.algebra
 
 import com.cargo.error.ApplicationError
 import com.cargo.error.ApplicationError._
-import com.cargo.model.TokenType.{AccessToken, VerificationToken}
-import com.cargo.model.{Token, User, UserInfo}
+import com.cargo.model.TokenType.VerificationToken
+import com.cargo.model.{Token, User}
 import com.password4j.Password
 import com.cargo.repository.UsersRepository
 import com.cargo.service.EmailNotification
@@ -18,7 +18,7 @@ trait Authentication {
   def registerUser(email: String, password: String): IO[ApplicationError, Token]
   def verifyEmail(code: String)(rawToken: String): IO[ApplicationError, Unit]
   def login(email: String, password: String): IO[ApplicationError, Token]
-  def getUserInfo(rawToken: String): IO[ApplicationError, UserInfo]
+  def getUserInfo(rawToken: String): IO[ApplicationError, User]
 }
 
 object Authentication {
@@ -37,7 +37,7 @@ object Authentication {
   ): ZIO[Authentication, ApplicationError, Unit] =
     ZIO.serviceWithZIO[Authentication](_.verifyEmail(code)(rawToken))
 
-  def getUserInfo(rawToken: String): ZIO[Authentication, ApplicationError, UserInfo] =
+  def getUserInfo(rawToken: String): ZIO[Authentication, ApplicationError, User] =
     ZIO.serviceWithZIO[Authentication](_.getUserInfo(rawToken))
 
   final case class AuthLive(
@@ -92,12 +92,12 @@ object Authentication {
         _ <- ZIO.logInfo(s"Successfully issued access token")
       } yield token
 
-    override def getUserInfo(rawToken: String): IO[ApplicationError, UserInfo] =
+    override def getUserInfo(rawToken: String): IO[ApplicationError, User] =
       for {
         _ <- ZIO.logInfo("Get user info request")
         user <- getUser(rawToken)(tokens, users)
         _ <- ZIO.logInfo("Successfully sent user info")
-      } yield UserInfo(user.id.value, user.email, user.isVerified)
+      } yield user
   }
 
   val live = ZLayer.fromFunction(AuthLive.apply _)

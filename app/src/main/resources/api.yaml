@@ -446,6 +446,131 @@ paths:
         name: amount
         in: path
         required: true
+  '/reset/{email}':
+    parameters:
+      - schema:
+          type: string
+        name: email
+        in: path
+        required: true
+    post:
+      summary: Reset password
+      operationId: resetPassword
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetToken'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /reset/verify:
+    post:
+      summary: Verify reset password
+      operationId: verifyResetPassword
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: ''
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer token
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+  /user/offers:
+    get:
+      summary: Get user's offers
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CarOfferRes'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: getUserOffers
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer token
+          required: true
+  '/reservations/{reservationId}':
+    post:
+      summary: Accept or decline reservation
+      operationId: chooseReservation
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: ''
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationDecision'
+    parameters:
+      - schema:
+          type: string
+        name: reservationId
+        in: path
+        required: true
 components:
   schemas:
     UserCredentials:
@@ -479,10 +604,24 @@ components:
           type: string
         is_verified:
           type: boolean
+        first_name:
+          type: string
+        last_name:
+          type: string
+        driving_licence:
+          type: string
+        phone:
+          type: string
+        balance:
+          type: number
+        dob:
+          type: string
+          format: date
       required:
         - id
         - email
         - is_verified
+        - balance
     VerificationToken:
       title: VerificationToken
       type: object
@@ -698,8 +837,7 @@ components:
       enum:
         - requested
         - accepted
-        - finished
-        - in_progress
+        - denied
     Reservation:
       title: Reservation
       x-stoplight:
@@ -751,6 +889,41 @@ components:
         - cheap
         - medium
         - expensive
+    ResetToken:
+      title: ResetToken
+      x-stoplight:
+        id: sf0esymbcq354
+      type: object
+      properties:
+        reset_token:
+          type: string
+    ResetPassword:
+      title: ResetPassword
+      x-stoplight:
+        id: iojeu072lmu30
+      type: object
+      properties:
+        code:
+          type: string
+        new_password:
+          type: string
+      required:
+        - code
+        - new_password
+      description: ''
+    ReservationDecision:
+      title: ReservationDecision
+      x-stoplight:
+        id: tmcdckwfeb8nn
+      type: object
+      properties:
+        decision:
+          type: string
+          enum:
+            - accept
+            - deny
+      required:
+        - decision
   securitySchemes:
     token:
       type: http

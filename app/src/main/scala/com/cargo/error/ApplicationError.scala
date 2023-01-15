@@ -13,6 +13,7 @@ object ApplicationError {
   final case object InsufficientBalance extends ApplicationError
   final case class UnexpectedError(msg: String) extends ApplicationError
   final case class IntegrationError(msg: String) extends ApplicationError
+  final case class MissingInfo(msg: String) extends ApplicationError
   final case class InvalidToken(msg: String) extends ApplicationError
   final case object InvalidPassword extends ApplicationError
 }

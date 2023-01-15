@@ -50,7 +50,8 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
   ): RIO[Authentication, Resource.GetUserResponse] =
     Authentication
       .getUserInfo(parseToken(authorization))
-      .map(user => respond.Ok(UserInfo(user.id.toString, user.email, user.isVerified)))
+      .map(mapUser)
+      .map(respond.Ok)
       .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
 
   override def postOffersAdd(respond: Resource.PostOffersAddResponse.type)(
@@ -97,7 +98,15 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
   override def postUserProfile(respond: Resource.PostUserProfileResponse.type)(
       body: Option[UserProfile],
       authorization: String
-  ): RIO[CarOffers, Resource.PostUserProfileResponse] = ???
+  ): RIO[UserManager, Resource.PostUserProfileResponse] =
+    body match {
+      case Some(UserProfile(firstName, lastName, phone, dob, drivingLicence)) =>
+        UserManager
+          .updateProfile(firstName, lastName, phone, dob, drivingLicence)(parseToken(authorization))
+          .as(respond.Created)
+          .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+      case _ => ZIO.succeed(respond.Forbidden(ErrorResponse("invalid_body", None)))
+    }
 
   override def addPictures(respond: Resource.AddPicturesResponse.type)(
       offerId: String,
@@ -192,6 +201,38 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
       case _ => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_offer_id", None)))
     }
 
+  override def addBalance(respond: Resource.AddBalanceResponse.type)(
+      amount: BigDecimal,
+      authorization: String
+  ): RIO[UserManager, Resource.AddBalanceResponse] =
+    UserManager
+      .addBalance(amount)(parseToken(authorization))
+      .as(respond.Ok)
+      .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+
+  override def verifyResetPassword(respond: Resource.VerifyResetPasswordResponse.type)(
+      body: Option[ResetPassword],
+      authorization: String
+  ): RIO[Infrastructure, Resource.VerifyResetPasswordResponse] = ???
+
+  override def getUserOffers(respond: Resource.GetUserOffersResponse.type)(
+      authorization: String
+  ): RIO[CarOffers, Resource.GetUserOffersResponse] =
+    CarOffers
+      .listByUser(parseToken(authorization))
+      .map(offers => respond.Ok(offers.map(mapCarOffer).toVector))
+      .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+
+  override def resetPassword(respond: Resource.ResetPasswordResponse.type)(
+      email: String
+  ): RIO[Infrastructure, Resource.ResetPasswordResponse] = ???
+
+  override def chooseReservation(respond: Resource.ChooseReservationResponse.type)(
+      reservationId: String,
+      body: Option[ReservationDecision],
+      authorization: Option[String]
+  ): RIO[Infrastructure, Resource.ChooseReservationResponse] = ???
+
   private def catchBadRequestError[Resp](
       badRequest: ErrorResponse => Resp,
       orElse: ApplicationError => Task[Resp]
@@ -214,6 +255,8 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
         ZIO.fail(new RuntimeException(s"integration failure $msg")) //fixme 502 error
       case ApplicationError.UnexpectedError(msg) =>
         ZIO.fail(new RuntimeException(s"unexpected error: $msg"))
+      case ApplicationError.MissingInfo(msg) =>
+        ZIO.fail(new RuntimeException(s"missing info error: $msg"))
       case _: ApplicationError.InvalidCode.type =>
         ZIO.succeed(unauthorized(ErrorResponse("invalid_code", None)))
       case _: ApplicationError.CarUnavailable.type =>
@@ -233,14 +276,4 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
       case ApplicationError.UserNotFound =>
         ZIO.succeed(unauthorized(ErrorResponse("user_not_found", None)))
     }
-
-  override def addBalance(respond: Resource.AddBalanceResponse.type)(
-      amount: BigDecimal,
-      authorization: String
-  ): RIO[UserManager, Resource.AddBalanceResponse] =
-    UserManager
-      .addBalance(amount)(parseToken(authorization))
-      .as(respond.Ok)
-      .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
-
 }
