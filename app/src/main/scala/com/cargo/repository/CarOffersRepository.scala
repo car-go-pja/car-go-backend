@@ -43,6 +43,8 @@ trait CarOffersRepository {
   def saveImage(url: String, offerId: CarOffer.Id): IO[DatabaseError.type, Unit]
 
   def delete(offerId: CarOffer.Id): IO[DatabaseError.type, Unit]
+
+  def listByOwner(ownerId: User.Id): IO[DatabaseError.type, List[CarOffer]]
 }
 
 object CarOffersRepository extends DoobieInstances {
@@ -110,6 +112,9 @@ object CarOffersRepository extends DoobieInstances {
 
     override def delete(offerId: CarOffer.Id): IO[ApplicationError.DatabaseError.type, Unit] =
       SQL.delete(offerId).run.transact(xa).unit.orElseFail(DatabaseError)
+
+    override def listByOwner(ownerId: User.Id): IO[ApplicationError.DatabaseError.type, List[CarOffer]] =
+      SQL.listByOwner(ownerId).to[List].transact(xa).orElseFail(DatabaseError)
   }
 
   private object SQL {
@@ -145,6 +150,9 @@ object CarOffersRepository extends DoobieInstances {
       (fr"SELECT * FROM cargo.car_offers" ++ whereAndOpt(isCity, containsFeatures))
         .query[CarOffer]
     }
+
+    def listByOwner(ownerId: User.Id): Query0[CarOffer] =
+      sql"SELECT * FROM cargo.car_offers WHERE owner_id = $ownerId".query[CarOffer]
 
     def get(offerId: CarOffer.Id): Query0[CarOffer] =
       sql"SELECT * FROM cargo.car_offers WHERE id = $offerId".query[CarOffer]
