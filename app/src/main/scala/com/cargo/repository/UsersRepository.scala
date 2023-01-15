@@ -9,6 +9,7 @@ import zio.interop.catz._
 import com.cargo.error.ApplicationError._
 import com.cargo.infrastructure.DoobieInstances
 import zio._
+import Fragments._
 
 import java.time.Instant
 import java.util.UUID
@@ -26,16 +27,29 @@ trait UsersRepository {
   def isVerified(userId: User.Id): IO[DatabaseError.type, Boolean]
   def findVerificationRow(userId: User.Id): IO[DatabaseError.type, Option[VerificationRow]]
   def changeBalance(userId: User.Id, balance: BigDecimal): IO[DatabaseError.type, Unit]
+  def updateProfile(
+      userId: User.Id,
+      firstName: Option[String],
+      lastName: Option[String],
+      phone: Option[String],
+      dob: Option[String],
+      drivingLicence: Option[String]
+  ): IO[DatabaseError.type, Unit]
 }
 
 object UsersRepository extends DoobieInstances {
   final case class UsersLive(xa: Transactor[Task]) extends UsersRepository {
-    override def create(id: User.Id, email: String, password: String): IO[DatabaseError.type, Unit] =
+    override def create(
+        id: User.Id,
+        email: String,
+        password: String
+    ): IO[DatabaseError.type, Unit] =
       SQL
         .create(id, email, password)
         .run
         .transact(xa)
-        .unit.orElseFail(DatabaseError)
+        .unit
+        .orElseFail(DatabaseError)
 
     override def find(email: String): IO[DatabaseError.type, Option[User]] =
       SQL.find(email).option.transact(xa).orElseFail(DatabaseError)
@@ -69,8 +83,26 @@ object UsersRepository extends DoobieInstances {
     ): IO[DatabaseError.type, Option[VerificationRow]] =
       SQL.findVerificationRow(userId).option.transact(xa).orElseFail(DatabaseError)
 
-    override def changeBalance(userId: User.Id, balance: BigDecimal): IO[ApplicationError.DatabaseError.type, Unit] =
+    override def changeBalance(
+        userId: User.Id,
+        balance: BigDecimal
+    ): IO[ApplicationError.DatabaseError.type, Unit] =
       SQL.changeBalance(userId, balance).run.transact(xa).unit.orElseFail(DatabaseError)
+
+    override def updateProfile(
+        userId: User.Id,
+        firstName: Option[String],
+        lastName: Option[String],
+        phone: Option[String],
+        dob: Option[String],
+        drivingLicence: Option[String]
+    ): IO[ApplicationError.DatabaseError.type, Unit] =
+      SQL
+        .updateProfile(userId, firstName, lastName, phone, dob, drivingLicence)
+        .run
+        .transact(xa)
+        .unit
+        .orElseFail(DatabaseError)
   }
 
   val live = ZLayer.fromFunction(UsersLive.apply _)
@@ -96,5 +128,28 @@ object UsersRepository extends DoobieInstances {
 
     def changeBalance(userId: User.Id, balance: BigDecimal): Update0 =
       sql"UPDATE cargo.users SET balance = balance + $balance WHERE id = $userId".update
+
+    def updateProfile(
+        userId: User.Id,
+        firstName: Option[String],
+        lastName: Option[String],
+        phone: Option[String],
+        dob: Option[String],
+        drivingLicence: Option[String]
+    ): Update0 = {
+      val firstNameFr = firstName.map(fN => fr"first_name = $fN")
+      val lastNameFr = lastName.map(lN => fr"last_name = $lN")
+      val phoneFr = phone.map(p => fr"phone = $p")
+      val dobFr = dob.map(d => fr"date_of_birth = $d")
+      val drivingLicenceFr = drivingLicence.map(dL => fr"driving_licence = $dL")
+
+      (fr"UPDATE cargo.users" ++ setOpt(
+        firstNameFr,
+        lastNameFr,
+        phoneFr,
+        dobFr,
+        drivingLicenceFr
+      ) ++ fr"WHERE id = $userId").update
+    }
   }
 }

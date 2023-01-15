@@ -97,7 +97,15 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
   override def postUserProfile(respond: Resource.PostUserProfileResponse.type)(
       body: Option[UserProfile],
       authorization: String
-  ): RIO[CarOffers, Resource.PostUserProfileResponse] = ???
+  ): RIO[UserManager, Resource.PostUserProfileResponse] = ???
+//    body match {
+//      case Some(UserProfile(firstName, lastName, phone, dob, drivingLicence)) =>
+//        UserManager
+//          .updateProfile(firstName, lastName, phone, dob, drivingLicence)(parseToken(authorization))
+//          .as(respond.Created)
+//          .catchAll()
+//      case _ => ZIO.succeed(respond.Forbidden(ErrorResponse("invalid_body", None)))
+//    }
 
   override def addPictures(respond: Resource.AddPicturesResponse.type)(
       offerId: String,
@@ -214,6 +222,8 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
         ZIO.fail(new RuntimeException(s"integration failure $msg")) //fixme 502 error
       case ApplicationError.UnexpectedError(msg) =>
         ZIO.fail(new RuntimeException(s"unexpected error: $msg"))
+      case ApplicationError.MissingInfo(msg) =>
+        ZIO.fail(new RuntimeException(s"missing info error: $msg"))
       case _: ApplicationError.InvalidCode.type =>
         ZIO.succeed(unauthorized(ErrorResponse("invalid_code", None)))
       case _: ApplicationError.CarUnavailable.type =>
