@@ -4,12 +4,14 @@ import com.cargo.error.ApplicationError
 import com.cargo.repository.UsersRepository
 import zio._
 
+import java.time.LocalDate
+
 trait UserManager {
   def updateProfile(
       firstName: Option[String],
       lastName: Option[String],
       phone: Option[String],
-      dob: Option[String],
+      dob: Option[LocalDate],
       drivingLicence: Option[String]
   )(rawToken: String): IO[ApplicationError, Unit]
 
@@ -25,7 +27,7 @@ object UserManager {
       firstName: Option[String],
       lastName: Option[String],
       phone: Option[String],
-      dob: Option[String],
+      dob: Option[LocalDate],
       drivingLicence: Option[String]
   )(rawToken: String): ZIO[UserManager, ApplicationError, Unit] =
     ZIO.serviceWithZIO(_.updateProfile(firstName, lastName, phone, dob, drivingLicence)(rawToken))
@@ -35,7 +37,7 @@ object UserManager {
         firstName: Option[String],
         lastName: Option[String],
         phone: Option[String],
-        dob: Option[String],
+        dob: Option[LocalDate],
         drivingLicence: Option[String]
     )(rawToken: String): IO[ApplicationError, Unit] =
       for {

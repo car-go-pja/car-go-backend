@@ -23,10 +23,11 @@ object UserManagerSpec extends ZIOSpecDefault {
         for {
           token <- Authentication.login("cargo@other.com", "cargo")
           userBefore <- ZIO.serviceWithZIO[UsersRepository](_.find("cargo@other.com"))
-          name = "John".some
-          _ <- UserManager.updateProfile(name, None, None, None, None)(token.encodedToken)
+          firstName = "John".some
+          lastName = "Doe".some
+          _ <- UserManager.updateProfile(firstName, lastName, None, LocalDate.of(2000, 1, 1).some, None)(token.encodedToken)
           userAfter <- ZIO.serviceWithZIO[UsersRepository](_.find("cargo@other.com"))
-        } yield assertTrue(userBefore.get.firstName.isEmpty, userAfter.get.firstName == name)
+        } yield assertTrue(userBefore.get.firstName.isEmpty, userAfter.get.firstName == firstName, userAfter.get.lastName == lastName)
       }
     ).provideShared(
       Authentication.live,

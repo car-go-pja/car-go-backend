@@ -161,18 +161,17 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
     }
 
   override def makeReservation(respond: Resource.MakeReservationResponse.type)(
-      offerId: String,
       body: Option[MakeReservation],
       authorization: String
   ): RIO[Reservations, Resource.MakeReservationResponse] =
-    parseUUID(offerId).product(body) match {
-      case Some((uuid, reservation)) =>
+    body match {
+      case Some(MakeReservation(from, to, insurance, offerId)) =>
         Reservations
           .makeReservation(
-            CarOffer.Id(uuid),
-            reservation.from.atStartOfDay().toInstant(ZoneOffset.UTC),
-            reservation.to.atStartOfDay().toInstant(ZoneOffset.UTC),
-            reservation.insurance
+            CarOffer.Id(parseUUID(offerId).get),
+            from.atStartOfDay().toInstant(ZoneOffset.UTC),
+            to.atStartOfDay().toInstant(ZoneOffset.UTC),
+            insurance
           )(parseToken(authorization))
           .as(respond.NoContent)
           .catchAll {
@@ -184,22 +183,17 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
               ZIO.succeed(respond.Forbidden(ErrorResponse("owner_self_rent", None)))
             case other => catchApplicationError(respond.Unauthorized)(other)
           }
-      case None => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_offer_id", None)))
+      case None => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_body", None)))
     }
 
-  override def getReservation(respond: Resource.GetReservationResponse.type)(
-      offerId: String,
-      authorization: String
-  ): RIO[Reservations, Resource.GetReservationResponse] =
-    parseUUID(offerId) match {
-      case Some(uuid) =>
-        Reservations
-          .list(CarOffer.Id(uuid))(parseToken(authorization))
-          .map(_.map(mapReservations).toVector)
-          .map(respond.Ok)
-          .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
-      case _ => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_offer_id", None)))
-    }
+  override def getOwnersReservations(respond: Resource.GetOwnersReservationsResponse.type)(
+    authorization: String
+  ): RIO[Infrastructure, Resource.GetOwnersReservationsResponse] =
+      Reservations
+        .list(parseToken(authorization))
+        .map(_.map(mapReservations).toVector)
+        .map(respond.Ok)
+        .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
 
   override def addBalance(respond: Resource.AddBalanceResponse.type)(
       amount: BigDecimal,

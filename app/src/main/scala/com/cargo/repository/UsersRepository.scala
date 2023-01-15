@@ -11,7 +11,7 @@ import com.cargo.infrastructure.DoobieInstances
 import zio._
 import Fragments._
 
-import java.time.Instant
+import java.time.{Instant, LocalDate}
 import java.util.UUID
 
 trait UsersRepository {
@@ -32,7 +32,7 @@ trait UsersRepository {
       firstName: Option[String],
       lastName: Option[String],
       phone: Option[String],
-      dob: Option[String],
+      dob: Option[LocalDate],
       drivingLicence: Option[String]
   ): IO[DatabaseError.type, Unit]
 }
@@ -94,7 +94,7 @@ object UsersRepository extends DoobieInstances {
         firstName: Option[String],
         lastName: Option[String],
         phone: Option[String],
-        dob: Option[String],
+        dob: Option[LocalDate],
         drivingLicence: Option[String]
     ): IO[ApplicationError.DatabaseError.type, Unit] =
       SQL
@@ -134,7 +134,7 @@ object UsersRepository extends DoobieInstances {
         firstName: Option[String],
         lastName: Option[String],
         phone: Option[String],
-        dob: Option[String],
+        dob: Option[LocalDate],
         drivingLicence: Option[String]
     ): Update0 = {
       val firstNameFr = firstName.map(fN => fr"first_name = $fN")

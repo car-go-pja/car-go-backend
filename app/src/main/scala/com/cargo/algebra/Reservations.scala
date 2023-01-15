@@ -2,7 +2,7 @@ package com.cargo.algebra
 
 import com.cargo.api.generated.definitions.dto.Insurance
 import com.cargo.error.ApplicationError
-import com.cargo.model.{CarOffer, Reservation}
+import com.cargo.model.{CarOffer, Reservation, User}
 import com.cargo.model.Reservation.Status.Accepted
 import com.cargo.repository.{CarOffersRepository, ReservationsRepository, UsersRepository}
 import cats.syntax.option._
@@ -17,7 +17,7 @@ trait Reservations {
       rawToken: String
   ): IO[ApplicationError, Unit]
 
-  def list(offerId: CarOffer.Id)(rawToken: String): IO[ApplicationError, List[Reservation]]
+  def list(rawToken: String): IO[ApplicationError, List[Reservation]]
 }
 
 object Reservations {
@@ -27,8 +27,8 @@ object Reservations {
   ): ZIO[Reservations, ApplicationError, Unit] =
     ZIO.serviceWithZIO[Reservations](_.makeReservation(offerId, from, to, insurance)(rawToken))
 
-  def list(offerId: CarOffer.Id)(rawToken: String): ZIO[Reservations, ApplicationError, List[Reservation]] =
-    ZIO.serviceWithZIO[Reservations](_.list(offerId)(rawToken))
+  def list(rawToken: String): ZIO[Reservations, ApplicationError, List[Reservation]] =
+    ZIO.serviceWithZIO[Reservations](_.list(rawToken))
 
   final case class ReservationsLive(
       tokens: Tokens,
@@ -77,14 +77,11 @@ object Reservations {
       } yield ()
     }
 
-    override def list(offerId: CarOffer.Id)(rawToken: String): IO[ApplicationError, List[Reservation]] =
+    override def list(rawToken: String): IO[ApplicationError, List[Reservation]] =
       for {
         _ <- ZIO.logInfo("List reservations request")
         user <- getUser(rawToken)(tokens, usersRepo)
-        offerO <- offersRepo.get(offerId)
-        offer <- ZIO.fromOption(offerO).orElseFail(ApplicationError.OfferNotFound(offerId.value.toString))
-        _ <- ZIO.unless(user.id == offer.ownerId)(ZIO.fail(ApplicationError.NotAnOwner))
-        reservations <- reservationsRepo.getReservations(offerId, None, None)
+        reservations <- reservationsRepo.getOwnerReservations(user.id)
         _ <- ZIO.logInfo(s"Successfully listed reservations size: ${reservations.size}")
       } yield reservations
   }

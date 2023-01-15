@@ -342,7 +342,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  '/reservation/{offerId}':
+  /reservations:
     get:
       summary: Reserved car dates
       tags: []
@@ -355,19 +355,13 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Reservation'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      operationId: getReservation
+      operationId: getOwnersReservations
       description: Returns the dates when the car is rented (for the owner)
       parameters:
         - schema:
@@ -376,13 +370,6 @@ paths:
           name: Authorization
           description: Bearer token
           required: true
-    parameters:
-      - schema:
-          type: string
-        name: offerId
-        in: path
-        required: true
-        description: offer id
     post:
       summary: Make reservation
       operationId: makeReservation
@@ -644,6 +631,13 @@ components:
       x-stoplight:
         id: x1use4hvts9df
       type: object
+      x-examples:
+        Example 1:
+          first_name: Jan
+          last_name: Nowak
+          phone: '606606606'
+          dob: 31-01-2000
+          driving_licence: CFP012345
       properties:
         first_name:
           type: string
@@ -653,16 +647,9 @@ components:
           type: string
         dob:
           type: string
+          format: date
         driving_licence:
           type: string
-      x-examples:
-        Example 1:
-          first_name: Jan
-          last_name: Nowak
-          phone: '606606606'
-          dob: 31-01-2000
-          driving_licence: CFP012345
-      description: ''
     Feature:
       type: string
       enum:
@@ -876,10 +863,13 @@ components:
           format: date
         insurance:
           $ref: '#/components/schemas/Insurance'
+        offer_id:
+          type: string
       required:
         - from
         - to
         - insurance
+        - offer_id
     Insurance:
       title: Insurance
       x-stoplight:

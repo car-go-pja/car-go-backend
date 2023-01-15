@@ -30,6 +30,10 @@ trait ReservationsRepository {
       status: Option[Reservation.Status],
       fromToDate: Option[(Instant, Instant)]
   ): IO[DatabaseError.type, List[Reservation]]
+
+  def getOwnerReservations(
+      ownerId: User.Id
+  ): IO[DatabaseError.type, List[Reservation]]
 }
 
 object ReservationsRepository extends DoobieInstances {
@@ -55,7 +59,20 @@ object ReservationsRepository extends DoobieInstances {
         status: Option[Reservation.Status],
         fromToDate: Option[(Instant, Instant)]
     ): IO[ApplicationError.DatabaseError.type, List[Reservation]] =
-      SQL.getReservations(offerId, status, fromToDate).to[List].transact(xa).orElseFail(DatabaseError)
+      SQL
+        .getReservations(offerId, status, fromToDate)
+        .to[List]
+        .transact(xa)
+        .orElseFail(DatabaseError)
+
+    override def getOwnerReservations(
+        ownerId: User.Id
+    ): IO[ApplicationError.DatabaseError.type, List[Reservation]] =
+      SQL
+        .getOwnerReservations(ownerId)
+        .to[List]
+        .transact(xa)
+        .mapError(x => DatabaseError)
   }
 
   private object SQL {
@@ -70,14 +87,26 @@ object ReservationsRepository extends DoobieInstances {
     ): Update0 =
       sql"""INSERT INTO cargo.reservations (id, renter_id, offer_id, status, start_date, end_date, total_price, created_at) VALUES ($id, $renterId, $offerId, '${Reservation.Status.Requested}', $startDate, $endDate, $totalPrice, $createdAt)""".update
 
-    def getReservations(offerId: CarOffer.Id, status: Option[Reservation.Status], fromToDate: Option[(Instant, Instant)]): Query0[Reservation] = {
+    def getReservations(
+        offerId: CarOffer.Id,
+        status: Option[Reservation.Status],
+        fromToDate: Option[(Instant, Instant)]
+    ): Query0[Reservation] = {
       val withStatus = status.map(s => fr"status = $s")
       val withinDates = fromToDate.map {
         case (from, to) => fr"(start_date, end_date) OVERLAPS ($from, $to)"
       }
 
-      (fr"SELECT * FROM cargo.reservations" ++ whereAndOpt(withStatus, withinDates, Some(fr"offer_id = $offerId"))).query[Reservation]
+      (fr"SELECT * FROM cargo.reservations" ++ whereAndOpt(
+        withStatus,
+        withinDates,
+        Some(fr"offer_id = $offerId")
+      )).query[Reservation]
     }
+
+    def getOwnerReservations(ownerId: User.Id): Query0[Reservation] =
+      sql"SELECT r.* FROM cargo.reservations r JOIN cargo.car_offers o ON r.offer_id = o.id WHERE o.owner_id = $ownerId"
+        .query[Reservation]
   }
 
   val live = ZLayer.fromFunction(ReservationsRepositoryLive.apply _)
