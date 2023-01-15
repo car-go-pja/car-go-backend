@@ -1,12 +1,15 @@
 package com.cargo.algebra
 
 import zio.config.syntax._
+import cats.syntax.option._
 import com.cargo.algebra.TestUtils._
 import com.cargo.config.ApplicationConfig
 import com.cargo.error.ApplicationError.NotAnOwner
 import com.cargo.infrastructure.DatabaseTransactor
 import com.cargo.model.CarOffer
 import com.cargo.repository.{CarOffersRepository, ReservationsRepository, UsersRepository}
+
+import java.time.{LocalDate, ZoneOffset}
 import zio._
 import zio.stream.ZStream
 import zio.test.Assertion.{equalTo, fails}
@@ -46,6 +49,14 @@ object CarOffersSpec extends ZIOSpecDefault {
         for {
           offers <- CarOffers.list(None, None, None, expectedFeatures)
         } yield assertTrue(offers.size == 1, offers.head.features.exists(expectedFeatures.contains))
+      },
+      test("should not find offer by the overlapping renting date") {
+        val from = LocalDate.of(2023, 1, 13).atStartOfDay().toInstant(ZoneOffset.UTC).some
+        val to = LocalDate.of(2023, 1, 16).atStartOfDay().toInstant(ZoneOffset.UTC).some
+
+        for {
+          offers <- CarOffers.list(from, to, None, List.empty)
+        } yield assertTrue(offers.isEmpty)
       },
       test("should add images") {
         for {

@@ -85,7 +85,7 @@ object ReservationsRepository extends DoobieInstances {
         totalPrice: BigDecimal,
         createdAt: Instant
     ): Update0 =
-      sql"""INSERT INTO cargo.reservations (id, renter_id, offer_id, status, start_date, end_date, total_price, created_at) VALUES ($id, $renterId, $offerId, '${Reservation.Status.Requested}', $startDate, $endDate, $totalPrice, $createdAt)""".update
+      sql"""INSERT INTO cargo.reservations (id, renter_id, offer_id, status, start_date, end_date, total_price, created_at) VALUES ($id, $renterId, $offerId, ${Reservation.Status.Requested.name}, $startDate, $endDate, $totalPrice, $createdAt)""".update
 
     def getReservations(
         offerId: CarOffer.Id,

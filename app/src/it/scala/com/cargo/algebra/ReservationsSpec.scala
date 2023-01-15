@@ -6,7 +6,7 @@ import com.cargo.api.generated.definitions.dto.Insurance
 import com.cargo.config.ApplicationConfig
 import com.cargo.error.ApplicationError.{CarUnavailable, InsufficientBalance, OwnerSelfRent}
 import com.cargo.infrastructure.DatabaseTransactor
-import com.cargo.model.CarOffer
+import com.cargo.model.{CarOffer, Reservation}
 import com.cargo.repository.{CarOffersRepository, ReservationsRepository, UsersRepository}
 
 import java.time.{LocalDate, ZoneOffset}
@@ -22,13 +22,15 @@ object ReservationsSpec extends ZIOSpecDefault {
       test("should make reservation") {
         for {
           token <- Authentication.login("cargo@other.com", "cargo")
+          otherToken <- Authentication.login("cargo@email.com", "cargo")
           balanceBefore <- ZIO.serviceWithZIO[UsersRepository](_.find("cargo@other.com")).map(_.get.balance)
           offerId = CarOffer.Id(UUID.fromString("f53a8a80-94b0-4aab-9ef0-36a53befe69e"))
           from = LocalDate.of(2023, 1, 19).atStartOfDay().toInstant(ZoneOffset.UTC)
           to = LocalDate.of(2023, 1, 24).atStartOfDay().toInstant(ZoneOffset.UTC)
           _ <- Reservations.makeReservation(offerId, from, to, Insurance.Medium)(token.encodedToken)
+          reservations <- Reservations.list(otherToken.encodedToken).map(_.map(_._1))
           balanceAfter <- ZIO.serviceWithZIO[UsersRepository](_.find("cargo@other.com")).map(_.get.balance)
-        } yield assertTrue((balanceBefore - 2195.0) == balanceAfter)
+        } yield assertTrue((balanceBefore - 2195.0) == balanceAfter, reservations.exists(_.status == Reservation.Status.Requested))
       },
       test("should fail on renting your own car") {
         for {

@@ -35,6 +35,6 @@ object Reservation {
         case _               => None
       }
 
-    implicit val statusMeta: Meta[Status] = Meta[String].timap(Status.fromString(_).orNull)(_.name)
+    implicit val statusMeta: Meta[Status] = Meta[String].imap(Status.fromString(_).orNull)(_.name)
   }
 }
