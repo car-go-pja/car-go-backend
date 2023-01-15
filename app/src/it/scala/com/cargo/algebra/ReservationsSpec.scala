@@ -72,8 +72,7 @@ object ReservationsSpec extends ZIOSpecDefault {
       test("should list user's reservations") {
         for {
           token <- Authentication.login("cargo@email.com", "cargo")
-          offerId = CarOffer.Id(UUID.fromString("f53a8a80-94b0-4aab-9ef0-36a53befe69e"))
-          reservations <- Reservations.list(offerId)(token.encodedToken)
+          reservations <- Reservations.list(token.encodedToken)
         } yield assertTrue(reservations.size == 2)
       }
     ).provideShared(
