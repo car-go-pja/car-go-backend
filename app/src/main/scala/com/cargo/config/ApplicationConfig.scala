@@ -10,7 +10,8 @@ final case class ApplicationConfig(
     database: DatabaseConfig,
     token: TokenConfig,
     sendgridConfig: SendGridConfig,
-    storage: StorageConfig
+    storage: StorageConfig,
+    twilio: TwilioConfig
 )
 
 object ApplicationConfig {
@@ -19,6 +20,7 @@ object ApplicationConfig {
     .zip(nested("token")(TokenConfig.configuration))
     .zip(nested("sendgrid")(descriptor[SendGridConfig]))
     .zip(nested("storage")(descriptor[StorageConfig]))
+    .zip(nested("twilio")(descriptor[TwilioConfig]))
     .to[ApplicationConfig]
 
   val live = TypesafeConfig.fromResourcePath(configuration)

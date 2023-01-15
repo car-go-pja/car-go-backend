@@ -49,6 +49,7 @@ object Dependencies {
     "org.http4s" %% "http4s-client" % v.http4s,
     "ch.qos.logback" % "logback-classic" % "1.4.4",
     "com.beachape" %% "enumeratum" % v.enumeratum,
-    "com.beachape" %% "enumeratum-circe" % v.enumeratum
+    "com.beachape" %% "enumeratum-circe" % v.enumeratum,
+    "com.twilio.sdk" % "twilio" % "8.34.1"
   )
 }

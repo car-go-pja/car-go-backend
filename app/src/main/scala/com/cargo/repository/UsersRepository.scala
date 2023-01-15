@@ -17,6 +17,7 @@ import java.util.UUID
 trait UsersRepository {
   def create(id: User.Id, email: String, password: String): IO[DatabaseError.type, Unit]
   def find(email: String): IO[DatabaseError.type, Option[User]]
+  def findById(userId: User.Id): IO[DatabaseError.type, User]
   def saveVerificationCode(
       id: UUID,
       code: String,
@@ -103,6 +104,9 @@ object UsersRepository extends DoobieInstances {
         .transact(xa)
         .unit
         .orElseFail(DatabaseError)
+
+    override def findById(userId: User.Id): IO[ApplicationError.DatabaseError.type, User] =
+      SQL.findById(userId).option.transact(xa).mapBoth(_ => DatabaseError, _.get)
   }
 
   val live = ZLayer.fromFunction(UsersLive.apply _)
@@ -113,6 +117,8 @@ object UsersRepository extends DoobieInstances {
 
     def find(email: String): Query0[User] =
       sql"""SELECT * FROM cargo.users WHERE email = $email""".query[User]
+
+    def findById(userId: User.Id): Query0[User] = sql"SELECT * FROM cargo.users WHERE id = $userId".query[User]
 
     def saveVerificationCode(id: UUID, code: String, userId: User.Id, createdAt: Instant): Update0 =
       sql"""INSERT INTO cargo.verification (id, user_id, code, created_at) VALUES ($id, $userId, $code, $createdAt)""".update

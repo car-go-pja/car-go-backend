@@ -22,12 +22,12 @@ object UserManagerSpec extends ZIOSpecDefault {
       test("should update profile") {
         for {
           token <- Authentication.login("cargo@other.com", "cargo")
-          userBefore <- ZIO.serviceWithZIO[UsersRepository](_.find("cargo@other.com"))
           firstName = "John".some
           lastName = "Doe".some
-          _ <- UserManager.updateProfile(firstName, lastName, None, LocalDate.of(2000, 1, 1).some, None)(token.encodedToken)
-          userAfter <- ZIO.serviceWithZIO[UsersRepository](_.find("cargo@other.com"))
-        } yield assertTrue(userBefore.get.firstName.isEmpty, userAfter.get.firstName == firstName, userAfter.get.lastName == lastName)
+          dob = LocalDate.of(2000, 1, 1).some
+          _ <- UserManager.updateProfile(firstName, lastName, None, dob, None)(token.encodedToken)
+          user <- ZIO.serviceWithZIO[UsersRepository](_.find("cargo@other.com"))
+        } yield assertTrue(user.get.firstName == firstName, user.get.lastName == lastName, user.get.dob == dob)
       }
     ).provideShared(
       Authentication.live,

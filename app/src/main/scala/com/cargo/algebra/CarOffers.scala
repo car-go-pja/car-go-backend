@@ -118,6 +118,7 @@ object CarOffers {
       for {
         _ <- ZIO.logInfo("Add car offer request")
         user <- getUser(rawToken)(tokens, usersRepository)
+        _ <- user.validate
         id <- ZIO.succeed(CarOffer.Id(UUID.randomUUID()))
         _ <- carOffersRepo.create(
           id,
@@ -194,10 +195,11 @@ object CarOffers {
           ZIO.fromOption(offerO).orElseFail(ApplicationError.OfferNotFound(offerId.value.toString))
         _ <- ZIO.unless(user.id == offer.ownerId)(ZIO.fail(ApplicationError.NotAnOwner))
         _ <- carOffersRepo.delete(offerId)
-        _ <- s3.deleteObject(cfg.bucketName, s"offers/${offerId.value}")
-          .mapError(err => UnexpectedError(err.getMessage): ApplicationError)
-          .tapError(err => ZIO.logError(s"Failed to delete offer images: $err"))
-      _ <- ZIO.logInfo("Successfully deleted offer")
+        _ <-
+          s3.deleteObject(cfg.bucketName, s"offers/${offerId.value}")
+            .mapError(err => UnexpectedError(err.getMessage): ApplicationError)
+            .tapError(err => ZIO.logError(s"Failed to delete offer images: $err"))
+        _ <- ZIO.logInfo("Successfully deleted offer")
       } yield ()
 
     override def listByUser(rawToken: String): IO[ApplicationError, List[CarOffer]] =

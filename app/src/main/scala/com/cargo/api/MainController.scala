@@ -75,7 +75,12 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
           )(parseToken(authorization))
           .map(mapCarOffer)
           .map(respond.Ok)
-          .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+          .catchAll(err =>
+            catchBadRequestError(
+              respond.BadRequest,
+              x => catchApplicationError(respond.Unauthorized)(x)
+            )(err)
+          )
       case None => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_body")))
     }
 
@@ -181,19 +186,21 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
               ZIO.succeed(respond.BadRequest(ErrorResponse("insufficient_balance", None)))
             case _: ApplicationError.OwnerSelfRent.type =>
               ZIO.succeed(respond.Forbidden(ErrorResponse("owner_self_rent", None)))
+            case ApplicationError.MissingInfo(msg) =>
+              ZIO.succeed(respond.BadRequest(ErrorResponse("missing_info", msg.some)))
             case other => catchApplicationError(respond.Unauthorized)(other)
           }
       case None => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_body", None)))
     }
 
   override def getOwnersReservations(respond: Resource.GetOwnersReservationsResponse.type)(
-    authorization: String
+      authorization: String
   ): RIO[Infrastructure, Resource.GetOwnersReservationsResponse] =
-      Reservations
-        .list(parseToken(authorization))
-        .map(_.map(mapReservations).toVector)
-        .map(respond.Ok)
-        .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+    Reservations
+      .list(parseToken(authorization))
+      .map(_.map(mapReservations).toVector)
+      .map(respond.Ok)
+      .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
 
   override def addBalance(respond: Resource.AddBalanceResponse.type)(
       amount: BigDecimal,
@@ -236,6 +243,8 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
         ZIO.succeed(badRequest(ErrorResponse("offer_not_found", msg.some)))
       case _: ApplicationError.UserNotFound.type =>
         ZIO.succeed(badRequest(ErrorResponse("user_not_found", None)))
+      case ApplicationError.MissingInfo(msg) =>
+        ZIO.succeed(badRequest(ErrorResponse("missing_info", msg.some)))
       case other => orElse(other)
     }
 

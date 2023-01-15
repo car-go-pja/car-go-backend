@@ -1,18 +1,26 @@
 package com.cargo.service
 
-import com.cargo.config.SendGridConfig
+import com.cargo.config.{SendGridConfig, TwilioConfig}
 import com.cargo.error.ApplicationError.IntegrationError
 import zio._
 import com.sendgrid._
 import com.sendgrid.helpers.mail.objects.Content
+import com.twilio.`type`.PhoneNumber
+import com.twilio.http.TwilioRestClient
+import com.twilio.rest.api.v2010.account.Message
 
-trait EmailNotification {
+trait Notifications {
   def sendVerificationEmail(addressee: String, code: String): IO[IntegrationError, Unit]
+  def sendSms(to: String, msg: String): IO[IntegrationError, Unit]
 }
 
-object EmailNotification {
-  final case class SendgridEmailNotification(config: SendGridConfig, sendGrid: SendGrid)
-      extends EmailNotification {
+object Notifications {
+  final case class NotificationsLive(
+      sendgridCfg: SendGridConfig,
+      sendGrid: SendGrid,
+      twilioConfig: TwilioConfig,
+      twilio: TwilioRestClient
+  ) extends Notifications {
     override def sendVerificationEmail(
         addressee: String,
         code: String
@@ -20,7 +28,7 @@ object EmailNotification {
       import com.sendgrid.helpers.mail.Mail
       import com.sendgrid.helpers.mail.objects.Email
 
-      val from = new Email(config.sender)
+      val from = new Email(sendgridCfg.sender)
       val to = new Email(addressee)
       val mail = new Mail(
         from,
@@ -46,6 +54,15 @@ object EmailNotification {
       } yield ()
     }
 
+    override def sendSms(to: String, msg: String): IO[IntegrationError, Unit] = {
+      val message =
+        Message.creator(new PhoneNumber(s"+48$to"), new PhoneNumber(twilioConfig.from), msg)
+
+      ZIO
+        .attempt(message.create(twilio))
+        .mapError(e => IntegrationError(e.getMessage))
+        .unit
+    }
   }
-  val live = ZLayer.fromFunction(SendgridEmailNotification.apply _)
+  val live = ZLayer.fromFunction(NotificationsLive.apply _)
 }

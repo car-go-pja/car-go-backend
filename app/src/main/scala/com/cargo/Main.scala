@@ -3,11 +3,12 @@ package com.cargo
 import com.cargo.algebra.{Authentication, CarOffers, Reservations, Tokens, UserManager}
 import com.cargo.api.{Infrastructure, MainController}
 import com.cargo.api.generated.Resource
-import com.cargo.config.{ApplicationConfig, SendGridConfig, StorageConfig}
+import com.cargo.config.{ApplicationConfig, SendGridConfig, StorageConfig, TwilioConfig}
 import com.cargo.infrastructure.DatabaseTransactor
 import com.cargo.repository.{CarOffersRepository, ReservationsRepository, UsersRepository}
-import com.cargo.service.EmailNotification
+import com.cargo.service.Notifications
 import com.sendgrid.SendGrid
+import com.twilio.Twilio
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import zio.ZIOAppDefault
@@ -33,6 +34,7 @@ object Main extends ZIOAppDefault {
       ApplicationConfig.live.narrow(_.database),
       ApplicationConfig.live.narrow(_.sendgridConfig),
       ApplicationConfig.live.narrow(_.storage),
+      ApplicationConfig.live.narrow(_.twilio),
       ZLayer
         .service[StorageConfig]
         .flatMap(env =>
@@ -45,7 +47,15 @@ object Main extends ZIOAppDefault {
       UsersRepository.live,
       Tokens.live,
       ZLayer(ZIO.service[SendGridConfig].map(cfg => new SendGrid(cfg.sendGridApiKey))),
-      EmailNotification.live,
+      ZLayer(
+        ZIO
+          .service[TwilioConfig]
+          .map { conf =>
+            Twilio.init(conf.accountSid, conf.authToken)
+            Twilio.getRestClient
+          }
+      ),
+      Notifications.live,
       CarOffers.live,
       CarOffersRepository.live,
       Reservations.live,

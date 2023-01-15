@@ -4,7 +4,7 @@ import com.cargo.config.{DatabaseConfig, StorageConfig}
 import zio.nio.file.Path
 import zio.s3._
 import com.cargo.error.ApplicationError
-import com.cargo.service.EmailNotification
+import com.cargo.service.Notifications
 import org.postgresql.ds.PGSimpleDataSource
 import io.zonky.test.db.postgres.embedded.{EmbeddedPostgres, FlywayPreparer}
 import zio._
@@ -38,12 +38,14 @@ object TestUtils {
   val storageCfgLayer: ZLayer[Any, Nothing, StorageConfig] =
     ZLayer.succeed(StorageConfig("foo", "bar", "baz"))
 
-  val mockedEmailNotification: ULayer[EmailNotification] = ZLayer.succeed {
-    new EmailNotification {
+  val mockedEmailNotification: ULayer[Notifications] = ZLayer.succeed {
+    new Notifications {
       override def sendVerificationEmail(
           addressee: String,
           code: String
       ): IO[ApplicationError.IntegrationError, Unit] = ZIO.unit
+
+      override def sendSms(to: String, msg: String): IO[ApplicationError.IntegrationError, Unit] = ZIO.unit
     }
   }
 }

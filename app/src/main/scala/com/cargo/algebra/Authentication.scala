@@ -6,7 +6,7 @@ import com.cargo.model.TokenType.VerificationToken
 import com.cargo.model.{Token, User}
 import com.password4j.Password
 import com.cargo.repository.UsersRepository
-import com.cargo.service.EmailNotification
+import com.cargo.service.Notifications
 import zio.Clock.ClockLive
 import zio._
 
@@ -43,7 +43,7 @@ object Authentication {
   final case class AuthLive(
       tokens: Tokens,
       users: UsersRepository,
-      emailNotification: EmailNotification
+      emailNotification: Notifications
   ) extends Authentication {
     override def registerUser(email: String, password: String): IO[ApplicationError, Token] =
       for {
