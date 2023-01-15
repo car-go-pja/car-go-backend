@@ -50,7 +50,8 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
   ): RIO[Authentication, Resource.GetUserResponse] =
     Authentication
       .getUserInfo(parseToken(authorization))
-      .map(user => respond.Ok(UserInfo(user.id.toString, user.email, user.isVerified)))
+      .map(mapUser)
+      .map(respond.Ok)
       .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
 
   override def postOffersAdd(respond: Resource.PostOffersAddResponse.type)(

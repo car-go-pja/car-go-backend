@@ -621,6 +621,7 @@ components:
         - id
         - email
         - is_verified
+        - balance
     VerificationToken:
       title: VerificationToken
       type: object

@@ -1,10 +1,10 @@
 package com.cargo
 
-import com.cargo.api.generated.definitions.dto.{CarOfferRes, Feature, ImageUrl, Point, Reservation => ReservationDTO}
+import com.cargo.api.generated.definitions.dto.{CarOfferRes, Feature, ImageUrl, Point, UserInfo, Reservation => ReservationDTO}
 import io.scalaland.chimney.dsl._
 import cats.syntax.option._
 import com.cargo.algebra.{Authentication, CarOffers, Reservations, UserManager}
-import com.cargo.model.{CarOffer, Reservation}
+import com.cargo.model.{CarOffer, Reservation, User}
 
 import java.time.{LocalDate, ZoneOffset}
 import java.util.UUID
@@ -32,6 +32,11 @@ package object api {
         o => o.geolocation.map(p => Point(p.lat.toString, p.lon.toString))
       )
       .withFieldComputed(_.images, _.imageUrls.map(url => ImageUrl(url.some)).toVector)
+      .transform
+
+  def mapUser: PartialFunction[User, UserInfo] =
+    _.into[UserInfo]
+      .withFieldComputed(_.id, _.id.value.toString)
       .transform
 
   def parseUUID(str: String): Option[UUID] = Try(UUID.fromString(str)).toOption
