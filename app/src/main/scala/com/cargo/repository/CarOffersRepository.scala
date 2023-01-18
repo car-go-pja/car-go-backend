@@ -148,7 +148,7 @@ object CarOffersRepository extends DoobieInstances {
         fr"EXISTS (SELECT 1 FROM unnest($features) WHERE unnest = ANY(features) AND features @> $features)"
       )
       val fromTo = from.product(to).map {
-        case (from, to) => fr"NOT (r.start_date, r.end_date) OVERLAPS ($from, $to)"
+        case (from, to) => fr"(r.id is null OR NOT (r.start_date, r.end_date) OVERLAPS ($from, $to))"
       }
 
 

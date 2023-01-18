@@ -20,6 +20,14 @@ import java.util.UUID
 object CarOffersSpec extends ZIOSpecDefault {
   override def spec =
     suite("CarOffersSpec")(
+      test("should not find offer by the overlapping renting date") {
+        val from = LocalDate.of(2023, 1, 13).atStartOfDay().toInstant(ZoneOffset.UTC).some
+        val to = LocalDate.of(2023, 1, 16).atStartOfDay().toInstant(ZoneOffset.UTC).some
+
+        for {
+          offers <- CarOffers.list(from, to, None, List.empty)
+        } yield assertTrue(offers.isEmpty)
+      },
       test("should add new offer") {
         for {
           token <- Authentication.login("cargo@email.com", "cargo")
@@ -37,7 +45,10 @@ object CarOffersSpec extends ZIOSpecDefault {
             None
           )(token.encodedToken)
           after <- CarOffers.list(None, None, None, List.empty[String])
-        } yield assertTrue(before.size == 1, after.size == 2)
+          from = LocalDate.of(2023, 2, 1).atStartOfDay().toInstant(ZoneOffset.UTC).some
+          to = LocalDate.of(2023, 2, 3).atStartOfDay().toInstant(ZoneOffset.UTC).some
+          afterWithDates <- CarOffers.list(from, to, None, List.empty[String])
+        } yield assertTrue(before.size == 1, after.size == 2, afterWithDates.size == 2)
       },
       test("should find offer by city") {
         for {
@@ -49,14 +60,6 @@ object CarOffersSpec extends ZIOSpecDefault {
         for {
           offers <- CarOffers.list(None, None, None, expectedFeatures)
         } yield assertTrue(offers.size == 1, offers.head.features.exists(expectedFeatures.contains))
-      },
-      test("should not find offer by the overlapping renting date") {
-        val from = LocalDate.of(2023, 1, 13).atStartOfDay().toInstant(ZoneOffset.UTC).some
-        val to = LocalDate.of(2023, 1, 16).atStartOfDay().toInstant(ZoneOffset.UTC).some
-
-        for {
-          offers <- CarOffers.list(from, to, None, List.empty)
-        } yield assertTrue(offers.isEmpty)
       },
       test("should add images") {
         for {
