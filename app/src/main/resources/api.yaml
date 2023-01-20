@@ -67,6 +67,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /register/verify:
+    get:
+      summary: Verify user's email
+      tags: [ ]
+      responses:
+        '204':
+          description: Verified successfully
+        '401':
+          description: Failed to verify
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: verifyEmail
+      description: Verify user's email
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: code
+          description: verification code from email
+          required: true
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer eY..
+          required: true
+    parameters: [ ]
   /login:
     post:
       summary: User login
