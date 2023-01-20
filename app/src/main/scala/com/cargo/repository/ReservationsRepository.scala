@@ -118,7 +118,7 @@ object ReservationsRepository extends DoobieInstances {
         .query[(Reservation, String, String)]
 
     def getRenterReservations(renterId: User.Id): Query0[(Reservation, String, String)] =
-      sql"SELECT r.*, o.make, o.model FROM cargo.reservations r JOIN cargo.car_offers o ON r.offer_id = o.id WHERE o.renter_id = $renterId"
+      sql"SELECT r.*, o.make, o.model FROM cargo.reservations r JOIN cargo.car_offers o ON r.offer_id = o.id WHERE r.renter_id = $renterId"
         .query[(Reservation, String, String)]
   }
 
