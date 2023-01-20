@@ -106,8 +106,9 @@ object Authentication {
     override def sendResetPassword(email: String): IO[ApplicationError, Unit] =
       for {
         userO <- users.find(email).orElseFail(DatabaseError)
-        _ <- ZIO.unless(userO.isDefined)(ZIO.fail(UserNotFound))
+        user <- ZIO.fromOption(userO).orElseFail(UserNotFound)
         code <- ZIO.succeed(Random.alphanumeric.take(30).mkString)
+        _ <- users.setResetToken(user.id, code)
         _ <- emailNotification.sendResetLink(email, code)
       } yield ()
   }

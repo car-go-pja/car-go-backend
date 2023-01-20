@@ -7,6 +7,7 @@ import com.cargo.config.ApplicationConfig
 import com.cargo.error.ApplicationError.{CarUnavailable, InsufficientBalance, OwnerSelfRent}
 import com.cargo.infrastructure.DatabaseTransactor
 import com.cargo.model.CarOffer
+import com.cargo.model.TokenType.AccessToken
 import com.cargo.repository.{CarOffersRepository, ReservationsRepository, UsersRepository}
 
 import java.time.{LocalDate, ZoneOffset}
@@ -27,7 +28,21 @@ object UserManagerSpec extends ZIOSpecDefault {
           dob = LocalDate.of(2000, 1, 1).some
           _ <- UserManager.updateProfile(firstName, lastName, None, dob, None)(token.encodedToken)
           user <- ZIO.serviceWithZIO[UsersRepository](_.find("cargo@other.com"))
-        } yield assertTrue(user.get.firstName == firstName, user.get.lastName == lastName, user.get.dob == dob)
+        } yield assertTrue(
+          user.get.firstName == firstName,
+          user.get.lastName == lastName,
+          user.get.dob == dob
+        )
+      },
+      test("should reset user's password") {
+        for {
+          _ <- Authentication.sendResetPassword("cargo@other.com")
+          userO <- ZIO.serviceWithZIO[UsersRepository](_.find("cargo@other.com"))
+          resetToken = userO.get.resetToken.get
+          newPassword = "cargo123"
+          _ <- UserManager.setNewPassword(newPassword, resetToken)
+          token <- Authentication.login("cargo@other.com", newPassword)
+        } yield assertTrue(token.tpe == AccessToken)
       }
     ).provideShared(
       Authentication.live,
