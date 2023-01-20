@@ -19,6 +19,7 @@ trait Authentication {
   def verifyEmail(code: String)(rawToken: String): IO[ApplicationError, Unit]
   def login(email: String, password: String): IO[ApplicationError, Token]
   def getUserInfo(rawToken: String): IO[ApplicationError, User]
+  def sendResetPassword(email: String): IO[ApplicationError, Unit]
 }
 
 object Authentication {
@@ -39,6 +40,9 @@ object Authentication {
 
   def getUserInfo(rawToken: String): ZIO[Authentication, ApplicationError, User] =
     ZIO.serviceWithZIO[Authentication](_.getUserInfo(rawToken))
+
+  def sendResetPassword(email: String): ZIO[Authentication, ApplicationError, Unit] =
+    ZIO.serviceWithZIO(_.sendResetPassword(email))
 
   final case class AuthLive(
       tokens: Tokens,
@@ -98,6 +102,15 @@ object Authentication {
         user <- getUser(rawToken)(tokens, users)
         _ <- ZIO.logInfo("Successfully sent user info")
       } yield user
+
+    override def sendResetPassword(email: String): IO[ApplicationError, Unit] =
+      for {
+        userO <- users.find(email).orElseFail(DatabaseError)
+        user <- ZIO.fromOption(userO).orElseFail(UserNotFound)
+        code <- ZIO.succeed(Random.alphanumeric.take(30).mkString)
+        _ <- users.setResetToken(user.id, code)
+        _ <- emailNotification.sendResetLink(email, code)
+      } yield ()
   }
 
   val live = ZLayer.fromFunction(AuthLive.apply _)

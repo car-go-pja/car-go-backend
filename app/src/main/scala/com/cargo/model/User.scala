@@ -21,7 +21,8 @@ final case class User(
     drivingLicence: Option[String],
     phone: Option[String],
     balance: BigDecimal,
-    dob: Option[LocalDate]
+    dob: Option[LocalDate],
+    resetToken: Option[String]
 ) {
   def validate: IO[MissingInfo, User] =
     ZIO

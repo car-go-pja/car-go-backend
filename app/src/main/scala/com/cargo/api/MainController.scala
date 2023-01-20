@@ -5,7 +5,7 @@ import cats.syntax.all._
 import zio._
 import com.cargo.api.generated.{Handler, Resource}
 import com.cargo.api.generated.definitions.dto._
-import com.cargo.model.{CarOffer, Point}
+import com.cargo.model.{CarOffer, Point, User}
 import zio.stream.interop.fs2z._
 import com.cargo.error.ApplicationError
 import fs2.Stream
@@ -211,11 +211,6 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
       .as(respond.Ok)
       .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
 
-  override def verifyResetPassword(respond: Resource.VerifyResetPasswordResponse.type)(
-      body: Option[ResetPassword],
-      authorization: String
-  ): RIO[Infrastructure, Resource.VerifyResetPasswordResponse] = ???
-
   override def getUserOffers(respond: Resource.GetUserOffersResponse.type)(
       authorization: String
   ): RIO[CarOffers, Resource.GetUserOffersResponse] =
@@ -226,13 +221,47 @@ final class MainController extends Handler[RIO[Infrastructure, *]] {
 
   override def resetPassword(respond: Resource.ResetPasswordResponse.type)(
       email: String
-  ): RIO[Infrastructure, Resource.ResetPasswordResponse] = ???
+  ): RIO[Infrastructure, Resource.ResetPasswordResponse] =
+    Authentication.sendResetPassword(email).as(respond.NoContent).catchAll {
+      case ApplicationError.UserNotFound =>
+        ZIO.succeed(respond.NotFound(ErrorResponse("user_not_found")))
+      case other => catchApplicationError(respond.Unauthorized)(other)
+    }
 
-  override def chooseReservation(respond: Resource.ChooseReservationResponse.type)(
-      reservationId: String,
-      body: Option[ReservationDecision],
-      authorization: Option[String]
-  ): RIO[Infrastructure, Resource.ChooseReservationResponse] = ???
+  override def setNewPassword(respond: Resource.SetNewPasswordResponse.type)(
+      code: String,
+      body: Option[ResetPassword]
+  ): RIO[Infrastructure, Resource.SetNewPasswordResponse] =
+    body match {
+      case Some(ResetPassword(newPassword)) =>
+        UserManager
+          .setNewPassword(newPassword, code)
+          .as(respond.NoContent)
+          .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+      case None => ZIO.succeed(respond.BadRequest(ErrorResponse("invalid_body")))
+    }
+
+  override def geUserReservations(respond: Resource.GeUserReservationsResponse.type)(
+      authorization: String
+  ): RIO[Infrastructure, Resource.GeUserReservationsResponse] =
+    Reservations
+      .listRents(parseToken(authorization))
+      .map(_.map(mapReservations).toVector)
+      .map(respond.Ok)
+      .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+
+  override def getUserById(
+      respond: Resource.GetUserByIdResponse.type
+  )(userId: String, authorization: String): RIO[Infrastructure, Resource.GetUserByIdResponse] =
+    parseUUID(userId) match {
+      case Some(uuid) =>
+        UserManager
+          .getUserById(User.Id(uuid))(parseToken(authorization))
+          .map(mapUser)
+          .map(respond.Ok)
+          .catchAll(err => catchApplicationError(respond.Unauthorized)(err))
+      case _ => ZIO.succeed(respond.Unauthorized(ErrorResponse("invalid_id")))
+    }
 
   private def catchBadRequestError[Resp](
       badRequest: ErrorResponse => Resp,

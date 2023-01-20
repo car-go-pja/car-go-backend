@@ -70,7 +70,7 @@ paths:
   /register/verify:
     get:
       summary: Verify user's email
-      tags: []
+      tags: [ ]
       responses:
         '204':
           description: Verified successfully
@@ -101,7 +101,7 @@ paths:
           name: Authorization
           description: Bearer eY..
           required: true
-    parameters: []
+    parameters: [ ]
   /login:
     post:
       summary: User login
@@ -444,28 +444,24 @@ paths:
       summary: Reset password
       operationId: resetPassword
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResetToken'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+        '204':
+          description: No Content
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /reset/verify:
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /reset:
     post:
-      summary: Verify reset password
-      operationId: verifyResetPassword
+      summary: SetNewPassword
+      operationId: setNewPassword
       responses:
         '204':
           description: No Content
@@ -485,15 +481,16 @@ paths:
       parameters:
         - schema:
             type: string
-          in: header
-          name: Authorization
-          description: Bearer token
+          in: query
+          name: code
+          description: code from email
           required: true
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ResetPassword'
+    parameters: []
   /user/offers:
     get:
       summary: Get user's offers
@@ -521,43 +518,65 @@ paths:
           name: Authorization
           description: Bearer token
           required: true
-  '/reservations/{reservationId}':
-    post:
-      summary: Accept or decline reservation
-      operationId: chooseReservation
+  '/user/{userId}':
+    parameters:
+      - schema:
+          type: string
+        name: userId
+        in: path
+        required: true
+    get:
+      summary: Get user info by id
+      tags: []
       responses:
-        '204':
-          description: No Content
-        '400':
-          description: Bad Request
+        '200':
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/UserInfo'
         '401':
           description: Unauthorized
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      description: ''
+      operationId: getUserById
       parameters:
         - schema:
             type: string
           in: header
           name: Authorization
           description: Bearer token
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ReservationDecision'
-    parameters:
-      - schema:
-          type: string
-        name: reservationId
-        in: path
-        required: true
+          required: true
+  /user/reservations:
+    get:
+      summary: User rentals
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reservation'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: geUserReservations
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: Bearer token
+          required: true
+      description: ''
 components:
   schemas:
     UserCredentials:
@@ -899,14 +918,10 @@ components:
         id: iojeu072lmu30
       type: object
       properties:
-        code:
-          type: string
         new_password:
           type: string
       required:
-        - code
         - new_password
-      description: ''
     ReservationDecision:
       title: ReservationDecision
       x-stoplight:

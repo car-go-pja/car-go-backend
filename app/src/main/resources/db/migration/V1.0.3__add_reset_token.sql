@@ -1,0 +1,2 @@
+ALTER TABLE cargo.users
+    ADD reset_token VARCHAR(128) UNIQUE DEFAULT NULL;
