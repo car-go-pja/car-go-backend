@@ -71,7 +71,7 @@ object Notifications {
         from,
         "Reset password",
         to,
-        new Content("text/plain", s"reset password link : https://car-go-frontend.vercel.app/reset?$code")
+        new Content("text/plain", s"reset password link : https://car-go-frontend.vercel.app/reset?code=$code")
       )
 
       val request = new Request
