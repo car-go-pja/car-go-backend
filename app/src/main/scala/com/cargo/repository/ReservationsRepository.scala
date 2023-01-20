@@ -33,11 +33,11 @@ trait ReservationsRepository {
 
   def getOwnerReservations(
       ownerId: User.Id
-  ): IO[DatabaseError.type, List[(Reservation, String, String)]]
+  ): IO[DatabaseError.type, List[(Reservation, String, String, String)]]
 
   def getRenterReservations(
       renterId: User.Id
-  ): IO[DatabaseError.type, List[(Reservation, String, String)]]
+  ): IO[DatabaseError.type, List[(Reservation, String, String, String)]]
 }
 
 object ReservationsRepository extends DoobieInstances {
@@ -71,7 +71,7 @@ object ReservationsRepository extends DoobieInstances {
 
     override def getOwnerReservations(
         ownerId: User.Id
-    ): IO[ApplicationError.DatabaseError.type, List[(Reservation, String, String)]] =
+    ): IO[ApplicationError.DatabaseError.type, List[(Reservation, String, String, String)]] =
       SQL
         .getOwnerReservations(ownerId)
         .to[List]
@@ -80,7 +80,7 @@ object ReservationsRepository extends DoobieInstances {
 
     override def getRenterReservations(
         renterId: User.Id
-    ): IO[ApplicationError.DatabaseError.type, List[(Reservation, String, String)]] =
+    ): IO[ApplicationError.DatabaseError.type, List[(Reservation, String, String, String)]] =
       SQL.getRenterReservations(renterId).to[List].transact(xa).orElseFail(DatabaseError)
   }
 
@@ -113,13 +113,13 @@ object ReservationsRepository extends DoobieInstances {
       )).query[Reservation]
     }
 
-    def getOwnerReservations(ownerId: User.Id): Query0[(Reservation, String, String)] =
-      sql"SELECT r.*, o.make, o.model FROM cargo.reservations r JOIN cargo.car_offers o ON r.offer_id = o.id WHERE o.owner_id = $ownerId"
-        .query[(Reservation, String, String)]
+    def getOwnerReservations(ownerId: User.Id): Query0[(Reservation, String, String, String)] =
+      sql"SELECT r.*, o.make, o.model, o.owner_id FROM cargo.reservations r JOIN cargo.car_offers o ON r.offer_id = o.id WHERE o.owner_id = $ownerId"
+        .query[(Reservation, String, String, String)]
 
-    def getRenterReservations(renterId: User.Id): Query0[(Reservation, String, String)] =
-      sql"SELECT r.*, o.make, o.model FROM cargo.reservations r JOIN cargo.car_offers o ON r.offer_id = o.id WHERE r.renter_id = $renterId"
-        .query[(Reservation, String, String)]
+    def getRenterReservations(renterId: User.Id): Query0[(Reservation, String, String, String)] =
+      sql"SELECT r.*, o.make, o.model, o.owner_id FROM cargo.reservations r JOIN cargo.car_offers o ON r.offer_id = o.id WHERE r.renter_id = $renterId"
+        .query[(Reservation, String, String, String)]
   }
 
   val live = ZLayer.fromFunction(ReservationsRepositoryLive.apply _)

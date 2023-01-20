@@ -18,9 +18,9 @@ trait Reservations {
       rawToken: String
   ): IO[ApplicationError, Unit]
 
-  def list(rawToken: String): IO[ApplicationError, List[(Reservation, String, String)]]
+  def list(rawToken: String): IO[ApplicationError, List[(Reservation, String, String, String)]]
 
-  def listRents(rawToken: String): IO[ApplicationError, List[(Reservation, String, String)]]
+  def listRents(rawToken: String): IO[ApplicationError, List[(Reservation, String, String, String)]]
 }
 
 object Reservations {
@@ -30,12 +30,12 @@ object Reservations {
   ): ZIO[Reservations, ApplicationError, Unit] =
     ZIO.serviceWithZIO[Reservations](_.makeReservation(offerId, from, to, insurance)(rawToken))
 
-  def listRents(rawToken: String): ZIO[Reservations, ApplicationError, List[(Reservation, String, String)]] =
+  def listRents(rawToken: String): ZIO[Reservations, ApplicationError, List[(Reservation, String, String, String)]] =
     ZIO.serviceWithZIO(_.listRents(rawToken))
 
   def list(
       rawToken: String
-  ): ZIO[Reservations, ApplicationError, List[(Reservation, String, String)]] =
+  ): ZIO[Reservations, ApplicationError, List[(Reservation, String, String, String)]] =
     ZIO.serviceWithZIO[Reservations](_.list(rawToken))
 
   final case class ReservationsLive(
@@ -92,7 +92,7 @@ object Reservations {
       } yield ()
     }
 
-    override def list(rawToken: String): IO[ApplicationError, List[(Reservation, String, String)]] =
+    override def list(rawToken: String): IO[ApplicationError, List[(Reservation, String, String, String)]] =
       for {
         _ <- ZIO.logInfo("List reservations request")
         user <- getUser(rawToken)(tokens, usersRepo)
@@ -100,7 +100,7 @@ object Reservations {
         _ <- ZIO.logInfo(s"Successfully listed reservations size: ${reservations.size}")
       } yield reservations
 
-    override def listRents(rawToken: String): IO[ApplicationError, List[(Reservation, String, String)]] =
+    override def listRents(rawToken: String): IO[ApplicationError, List[(Reservation, String, String, String)]] =
       for {
         user <- getUser(rawToken)(tokens, usersRepo)
         reservations <- reservationsRepo.getRenterReservations(user.id)

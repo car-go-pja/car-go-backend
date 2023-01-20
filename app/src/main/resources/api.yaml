@@ -861,6 +861,8 @@ components:
           format: date
         renter_id:
           type: string
+        owner_id:
+          type: string
         total_price:
           type: number
         model:
@@ -870,6 +872,7 @@ components:
       required:
         - from
         - to
+        - owner_id
         - renter_id
         - total_price
         - model

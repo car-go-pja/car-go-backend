@@ -22,13 +22,14 @@ package object api {
 
   def parseToken(bearerToken: String): String = bearerToken.drop(7)
 
-  def mapReservations: PartialFunction[(Reservation, String, String), ReservationDTO] = {
-    case (reservation, make, model) =>
+  def mapReservations: PartialFunction[(Reservation, String, String, String), ReservationDTO] = {
+    case (reservation, make, model, ownerId) =>
       reservation
         .into[ReservationDTO]
         .withFieldComputed(_.from, r => LocalDate.ofInstant(r.startDate, ZoneOffset.UTC))
         .withFieldComputed(_.to, r => LocalDate.ofInstant(r.endDate, ZoneOffset.UTC))
         .withFieldComputed(_.renterId, _.renterId.value.toString)
+        .withFieldComputed(_.ownerId, _ => ownerId)
         .withFieldComputed(_.make, _ => make)
         .withFieldComputed(_.model, _ => model)
         .transform
