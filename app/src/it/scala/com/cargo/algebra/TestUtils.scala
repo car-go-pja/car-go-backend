@@ -46,6 +46,8 @@ object TestUtils {
       ): IO[ApplicationError.IntegrationError, Unit] = ZIO.unit
 
       override def sendSms(to: String, msg: String): IO[ApplicationError.IntegrationError, Unit] = ZIO.unit
+
+      override def sendResetLink(addressee: String, code: String): IO[ApplicationError.IntegrationError, Unit] = ZIO.unit
     }
   }
 }

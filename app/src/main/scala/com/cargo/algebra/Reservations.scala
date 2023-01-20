@@ -19,6 +19,8 @@ trait Reservations {
   ): IO[ApplicationError, Unit]
 
   def list(rawToken: String): IO[ApplicationError, List[(Reservation, String, String)]]
+
+  def listRents(rawToken: String): IO[ApplicationError, List[(Reservation, String, String)]]
 }
 
 object Reservations {
@@ -27,6 +29,9 @@ object Reservations {
       rawToken: String
   ): ZIO[Reservations, ApplicationError, Unit] =
     ZIO.serviceWithZIO[Reservations](_.makeReservation(offerId, from, to, insurance)(rawToken))
+
+  def listRents(rawToken: String): ZIO[Reservations, ApplicationError, List[(Reservation, String, String)]] =
+    ZIO.serviceWithZIO(_.listRents(rawToken))
 
   def list(
       rawToken: String
@@ -93,6 +98,12 @@ object Reservations {
         user <- getUser(rawToken)(tokens, usersRepo)
         reservations <- reservationsRepo.getOwnerReservations(user.id)
         _ <- ZIO.logInfo(s"Successfully listed reservations size: ${reservations.size}")
+      } yield reservations
+
+    override def listRents(rawToken: String): IO[ApplicationError, List[(Reservation, String, String)]] =
+      for {
+        user <- getUser(rawToken)(tokens, usersRepo)
+        reservations <- reservationsRepo.getRenterReservations(user.id)
       } yield reservations
   }
 

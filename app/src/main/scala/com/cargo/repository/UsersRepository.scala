@@ -36,6 +36,8 @@ trait UsersRepository {
       dob: Option[LocalDate],
       drivingLicence: Option[String]
   ): IO[DatabaseError.type, Unit]
+  def setResetToken(userId: User.Id, resetToken: String): IO[DatabaseError.type, Unit]
+  def setNewPassword(newPassword: String, resetToken: String): IO[DatabaseError.type, Unit]
 }
 
 object UsersRepository extends DoobieInstances {
@@ -107,6 +109,28 @@ object UsersRepository extends DoobieInstances {
 
     override def findById(userId: User.Id): IO[ApplicationError.DatabaseError.type, User] =
       SQL.findById(userId).option.transact(xa).mapBoth(_ => DatabaseError, _.get)
+
+    override def setResetToken(
+        userId: User.Id,
+        resetToken: String
+    ): IO[ApplicationError.DatabaseError.type, Unit] =
+      SQL
+        .setResetToken(userId, resetToken)
+        .run
+        .transact(xa)
+        .unit
+        .orElseFail(DatabaseError)
+
+    override def setNewPassword(
+        newPassword: String,
+        resetToken: String
+    ): IO[ApplicationError.DatabaseError.type, Unit] =
+      SQL
+        .setNewPassword(newPassword, resetToken)
+        .run
+        .transact(xa)
+        .unit
+        .orElseFail(DatabaseError)
   }
 
   val live = ZLayer.fromFunction(UsersLive.apply _)
@@ -118,7 +142,8 @@ object UsersRepository extends DoobieInstances {
     def find(email: String): Query0[User] =
       sql"""SELECT * FROM cargo.users WHERE email = $email""".query[User]
 
-    def findById(userId: User.Id): Query0[User] = sql"SELECT * FROM cargo.users WHERE id = $userId".query[User]
+    def findById(userId: User.Id): Query0[User] =
+      sql"SELECT * FROM cargo.users WHERE id = $userId".query[User]
 
     def saveVerificationCode(id: UUID, code: String, userId: User.Id, createdAt: Instant): Update0 =
       sql"""INSERT INTO cargo.verification (id, user_id, code, created_at) VALUES ($id, $userId, $code, $createdAt)""".update
@@ -134,6 +159,12 @@ object UsersRepository extends DoobieInstances {
 
     def changeBalance(userId: User.Id, balance: BigDecimal): Update0 =
       sql"UPDATE cargo.users SET balance = balance + $balance WHERE id = $userId".update
+
+    def setResetToken(userId: User.Id, resetToken: String): Update0 =
+      sql"UPDATE cargo.users SET reset_token = $resetToken WHERE id = $userId".update
+
+    def setNewPassword(newPassword: String, resetToken: String): Update0 =
+      sql"UPDATE cargo.users SET password = $newPassword, reset_token = NULL WHERE reset_token = $resetToken".update
 
     def updateProfile(
         userId: User.Id,

@@ -38,9 +38,6 @@ object UserManagerSpec extends ZIOSpecDefault {
       DatabaseTransactor.live,
       dbConfigLayer,
       ApplicationConfig.live.narrow(_.token),
-      CarOffersRepository.live,
-      Reservations.live,
-      ReservationsRepository.live,
       UserManager.live
     ) @@ TestAspect.silentLogging @@ TestAspect.sequential
 }

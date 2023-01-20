@@ -444,12 +444,8 @@ paths:
       summary: Reset password
       operationId: resetPassword
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResetToken'
+        '204':
+          description: No Content
         '401':
           description: Unauthorized
           content:

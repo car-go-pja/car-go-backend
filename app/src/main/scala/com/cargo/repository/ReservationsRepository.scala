@@ -34,6 +34,10 @@ trait ReservationsRepository {
   def getOwnerReservations(
       ownerId: User.Id
   ): IO[DatabaseError.type, List[(Reservation, String, String)]]
+
+  def getRenterReservations(
+      renterId: User.Id
+  ): IO[DatabaseError.type, List[(Reservation, String, String)]]
 }
 
 object ReservationsRepository extends DoobieInstances {
@@ -72,7 +76,12 @@ object ReservationsRepository extends DoobieInstances {
         .getOwnerReservations(ownerId)
         .to[List]
         .transact(xa)
-        .mapError(x => DatabaseError)
+        .orElseFail(DatabaseError)
+
+    override def getRenterReservations(
+        renterId: User.Id
+    ): IO[ApplicationError.DatabaseError.type, List[(Reservation, String, String)]] =
+      SQL.getRenterReservations(renterId).to[List].transact(xa).orElseFail(DatabaseError)
   }
 
   private object SQL {
@@ -106,6 +115,10 @@ object ReservationsRepository extends DoobieInstances {
 
     def getOwnerReservations(ownerId: User.Id): Query0[(Reservation, String, String)] =
       sql"SELECT r.*, o.make, o.model FROM cargo.reservations r JOIN cargo.car_offers o ON r.offer_id = o.id WHERE o.owner_id = $ownerId"
+        .query[(Reservation, String, String)]
+
+    def getRenterReservations(renterId: User.Id): Query0[(Reservation, String, String)] =
+      sql"SELECT r.*, o.make, o.model FROM cargo.reservations r JOIN cargo.car_offers o ON r.offer_id = o.id WHERE o.renter_id = $renterId"
         .query[(Reservation, String, String)]
   }
 
